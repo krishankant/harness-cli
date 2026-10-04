@@ -25,6 +25,9 @@ __all__ = ["ApprovalRequest", "Done", "Engine", "Interrupted", "TextDelta", "Too
 
 TURN_TIMEOUT_S = 3600.0
 TURN_MAX_TOKENS = 10_000_000  # per turn; max_steps and max_cost_usd are the real limits
+# harnessy's default (3) suits short single tasks; a coding session re-reads test output and
+# files many steps later, so keep more full results before stubbing old ones (week 4).
+KEEP_LAST_RESULTS = 12
 
 
 @dataclass(frozen=True)
@@ -89,7 +92,7 @@ class Engine:
         self.extra_hooks = list(hooks)
         self.max_steps = max_steps
         self.max_cost_usd = max_cost_usd
-        self.context = ContextManager(budget_tokens=context_budget_tokens)
+        self.context = ContextManager(budget_tokens=context_budget_tokens, keep_last_results=KEEP_LAST_RESULTS)
         self.usage = Usage()
         self.cost_usd = 0.0
         self._events: queue.Queue[Any] | None = None
@@ -101,7 +104,7 @@ class Engine:
         return price_for(self.model.name, PRICES) is not None
 
     def reset_context(self) -> None:
-        self.context = ContextManager(budget_tokens=self.context.budget_tokens)
+        self.context = ContextManager(budget_tokens=self.context.budget_tokens, keep_last_results=KEEP_LAST_RESULTS)
 
     # --- one turn ---
 

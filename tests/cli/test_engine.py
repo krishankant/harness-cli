@@ -107,3 +107,12 @@ def test_turn_runs_off_the_main_thread():
     eng = Engine(model, [where], system=None, mode="default", interactive=True)
     drive(eng, "go", [])  # "where" is not a built-in, so it counts as execute and asks
     assert seen == [False]
+
+
+def test_recent_long_results_are_not_cleared():
+    calls = [ToolCall(f"c{i}", "run_shell", {"command": "x" * 600}) for i in range(5)]
+    eng, model = engine([*(tool_reply(c) for c in calls), text_reply("done")], mode="bypass")
+    drive(eng, "go", [])
+    last_view = model.calls[-1].messages
+    contents = [r.content for m in last_view for r in m.tool_results]
+    assert len(contents) == 5 and not any(c.startswith("[cleared") for c in contents)
