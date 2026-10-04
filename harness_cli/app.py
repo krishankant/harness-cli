@@ -78,6 +78,13 @@ class App:
     def tools(self):
         return self.engine.tools
 
+    def refresh_instructions(self) -> None:
+        """Re-read HARNESS.md and friends, so a memory saved (or a file edited) in one turn is part
+        of the system prompt from the next. The prompt only changes when a file changed, so the
+        provider's prompt cache keeps hitting otherwise."""
+        self.system = build_system_prompt(self.workspace, self.settings, [t.name for t in self.engine.tools])
+        self.engine.system = self.system
+
     def set_model(self, name: str) -> None:
         """Switch to another model, of any provider; the conversation carries over. On an error
         (unknown name, missing key) nothing changes."""
@@ -104,6 +111,7 @@ class App:
     def run_turn(self, prompt: str, on_event: Callable[[Any], None] | None = None) -> RunResult:
         """Run one turn, show it (or hand events to on_event), save the session, return the result."""
         handle = on_event or self.show
+        self.refresh_instructions()
         gen = self.engine.turn(prompt, self.session.messages)
         result: RunResult | None = None
         try:

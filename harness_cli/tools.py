@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from harness_cli.config import Settings
+from harness_cli.memory import memory_tool
 from harness_cli.sandbox import run_sandboxed
 from harnessy.hooks import Hook
 from harnessy.mcp import McpClient, mcp_tools
@@ -30,6 +31,7 @@ KIND = {
     "edit_file": "edit",
     "run_shell": "execute",
     "spawn_subagent": "agent",
+    "remember": "memory",
 }
 IGNORED_DIRS = {".git", ".hg", ".svn", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", ".harness", "dist", "build"}
 MAX_LISTED = 500
@@ -141,7 +143,7 @@ def build_tools(workspace: Path, settings: Settings, todo: TodoList, model: Mode
     read_file, write_file, edit_file, _run_tests = code_tools(root)
     worker_tools = [read_file, *search_tools(root), write_file, edit_file, shell_tool(root, settings)]
     subagent = subagent_tool(model, worker_tools, hooks=hooks, max_steps=20)
-    return [*worker_tools, todo.tool(), subagent]
+    return [*worker_tools, todo.tool(), memory_tool(root), subagent]
 
 
 def start_mcp(servers: dict[str, Any], workspace: Path) -> tuple[list[Tool], list[McpClient], list[str]]:

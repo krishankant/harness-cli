@@ -160,3 +160,11 @@ def test_continue_with_another_model_records_it(workspace):
     run(workspace, ["-p", "-c", "-m", "gpt-5.5", "again"], [text_reply("hi again")])
     s = sessions.latest(workspace)
     assert (s.provider, s.model) == ("openai", "gpt-5.5") and len(s.messages) == 4
+
+
+def test_headless_declines_remember_unless_allowed(workspace):
+    call = ToolCall("c1", "remember", {"text": "fact"})
+    run(workspace, ["-p", "x"], [tool_reply(call), text_reply("ok")])
+    assert not (workspace / "HARNESS.md").exists()
+    run(workspace, ["-p", "x", "--allowed-tools", "remember"], [tool_reply(call), text_reply("ok")])
+    assert (workspace / "HARNESS.md").exists()

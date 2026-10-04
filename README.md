@@ -32,8 +32,8 @@ Done — `notes.txt` contains `hello`.
 **What it does:** multi-turn chat with streaming output; file reading, searching and exact-match
 editing; a shell confined to the workspace (macOS Seatbelt: no network, no writes outside);
 approval prompts with four permission modes and allow/deny rules; slash commands and your own
-Markdown commands; `HARNESS.md`/`AGENTS.md`/`CLAUDE.md` project instructions; saved, resumable
-sessions; a headless `-p` mode with text, JSON and JSON-lines output; subagents, a todo list
+Markdown commands; `HARNESS.md`/`AGENTS.md`/`CLAUDE.md` project instructions; reviewed long-term
+memory (`remember`, `/memory`); saved, resumable sessions; a headless `-p` mode with text, JSON and JSON-lines output; subagents, a todo list
 and MCP servers; any Anthropic, OpenAI(-compatible) or Ollama model, named in a model registry
 and switchable mid-conversation (`-m gpt-5.5`, `/model opus`, `--list-models`).
 

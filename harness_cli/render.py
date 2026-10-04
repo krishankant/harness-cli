@@ -183,6 +183,9 @@ class Renderer:
             return shown + ([self.style(f"  … {len(body) - 8} more lines", "dim")] if len(body) > 8 else [])
         if call.name == "run_shell":
             return [self.style(f"$ {args.get('command', '')}", "yellow")]
+        if call.name == "remember":
+            where = "~/.harness/HARNESS.md (every project)" if args.get("scope") == "user" else "HARNESS.md (this project)"
+            return [self.style(f"+ - {' '.join(str(args.get('text', '')).split())}", "green"), self.style(f"  saved to {where}, loaded into every future conversation", "dim")]
         return [self.style(json.dumps(args, default=str)[:400], "dim")]
 
     def ask(self, call: ToolCall) -> str:

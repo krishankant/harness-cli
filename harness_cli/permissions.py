@@ -21,11 +21,13 @@ from harnessy.types import ToolCall
 # spawn_subagent ("agent") carries every trifecta leg of the tools it can hand out, so the
 # week 7 check needs "ask" for it. PermissionHook approves it without asking the human,
 # because the child runs under this same hook and asks for each risky call itself.
+# "memory" (remember) asks even in accept-edits: a saved fact outlives the session, so a fact
+# planted by injected text would steer every future conversation. You see each one first.
 TABLE: dict[str, dict[str, Decision]] = {
-    "default": {"read": "allow", "edit": "ask", "execute": "ask", "agent": "ask"},
-    "accept-edits": {"read": "allow", "edit": "allow", "execute": "ask", "agent": "ask"},
-    "plan": {"read": "allow", "edit": "deny", "execute": "deny", "agent": "deny"},
-    "bypass": {"read": "allow", "edit": "allow", "execute": "ask", "agent": "ask"},
+    "default": {"read": "allow", "edit": "ask", "execute": "ask", "agent": "ask", "memory": "ask"},
+    "accept-edits": {"read": "allow", "edit": "allow", "execute": "ask", "agent": "ask", "memory": "ask"},
+    "plan": {"read": "allow", "edit": "deny", "execute": "deny", "agent": "deny", "memory": "deny"},
+    "bypass": {"read": "allow", "edit": "allow", "execute": "ask", "agent": "ask", "memory": "allow"},
 }
 MAIN_ARGS = ("command", "path", "pattern", "url", "task")
 

@@ -248,6 +248,17 @@ Found while building and testing; the sections above already describe the result
 | `--allowed-tools a b c` | `--allowed-tools "a,b"`, repeatable | A space-separated list swallowed the prompt argument |
 | (not in draft) | A warning when `--max-cost` can't be enforced | A model missing from the price table would ignore the budget silently |
 
+## v0.3: memory
+
+Memory is bullets under `## Memory` in `HARNESS.md` (project) and `~/.harness/HARNESS.md` (user),
+the files `instructions.py` already loads, so recall never depends on the model searching.
+`harness_cli/memory.py` adds the `remember` tool (its own permission kind, `memory`: ask in
+`default` and `accept-edits`, refused in `plan`) and `/memory`. `App.refresh_instructions()`
+rebuilds the system prompt before each turn, so a memory saved in one turn is loaded from the
+next. harnessy's `MemoryStore` was considered and not used: keyword recall can silently miss, a
+hidden JSON file goes stale unseen, and an unreviewed `remember` would let an injected instruction
+persist across sessions.
+
 ## v0.2: generic models
 
 A model registry replaced the single `--provider` + model name. `harness_cli/models.py` turns

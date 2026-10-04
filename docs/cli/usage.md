@@ -14,6 +14,7 @@ management and sandbox you built in the course.
 - [Permissions](#permissions)
 - [Sandbox](#sandbox)
 - [Project instructions](#project-instructions)
+- [Memory](#memory)
 - [Sessions](#sessions)
 - [Settings](#settings)
 - [MCP servers](#mcp-servers)
@@ -230,7 +231,8 @@ settings or session id. Failed tool calls are also echoed to stderr.
 | `/todo` | the agent's todo list |
 | `/sessions` | saved conversations for this folder |
 | `/resume <id>` | switch to a saved conversation |
-| `/init` | have the agent write a `HARNESS.md` for this project |
+| `/memory` | list saved memories; `/memory add [--user] <fact>` saves one yourself |
+| `/init` | have the agent write a `HARNESS.md` for this project (it keeps the Memory section) |
 | `/exit` | quit |
 
 ## Custom commands
@@ -258,13 +260,14 @@ Each tool is one of four kinds, and the permission mode decides per kind:
 | edit | `write_file`, `edit_file` |
 | execute | `run_shell`, every MCP tool |
 | agent | `spawn_subagent` |
+| memory | `remember` |
 
-| Mode | read | edit | execute | agent | Like |
-| --- | --- | --- | --- | --- | --- |
-| `default` | run | ask | ask | run | Claude Code default; Codex auto |
-| `accept-edits` | run | run | ask | run | Claude Code acceptEdits |
-| `plan` | run | refuse | refuse | refuse | Claude Code plan mode; Codex read-only |
-| `bypass` | run | run | run | run | `--dangerously-skip-permissions`; Codex full access |
+| Mode | read | edit | execute | agent | memory | Like |
+| --- | --- | --- | --- | --- | --- | --- |
+| `default` | run | ask | ask | run | ask | Claude Code default; Codex auto |
+| `accept-edits` | run | run | ask | run | ask | Claude Code acceptEdits |
+| `plan` | run | refuse | refuse | refuse | refuse | Claude Code plan mode; Codex read-only |
+| `bypass` | run | run | run | run | run | `--dangerously-skip-permissions`; Codex full access |
 
 A subagent runs under the same permission hook as you, so it asks for the same things you would
 be asked for. Switch modes during a chat with `/mode`.
@@ -323,7 +326,50 @@ Before each conversation the system prompt gets, in this order:
 4. `HARNESS.md`, `AGENTS.md` and `CLAUDE.md` from the workspace root, whichever exist;
 5. `--append-system-prompt` / `appendSystemPrompt`.
 
-`/init` asks the agent to write a `HARNESS.md` for the project.
+`/init` asks the agent to write a `HARNESS.md` for the project. Instruction files are re-read
+before every message, so an edit applies from your next message without restarting.
+
+## Memory
+
+Memory is the facts a new conversation should already know: how to build and test the project,
+conventions, gotchas, your preferences. They live as bullets under a `## Memory` heading in the
+same instruction files:
+
+| Scope | File | For |
+| --- | --- | --- |
+| project | `HARNESS.md` in the workspace | facts about this project (commit it to share them) |
+| user | `~/.harness/HARNESS.md` | your preferences, in every project |
+
+```markdown
+## Memory
+
+- Run tests with FAKE_DB=1 python3 -m pytest -q tests/
+- Never edit files under migrations/
+```
+
+**How memories are saved.** The agent calls its `remember` tool when it learns something durable,
+and you approve each one at a prompt that shows the exact line and the file it goes to:
+
+```
+? Allow remember
+    + - Run tests with FAKE_DB=1 python3 -m pytest -q tests/
+      saved to HARNESS.md (this project), loaded into every future conversation
+  [y]es  [n]o  [a]lways for this session ›
+```
+
+`remember` asks in `default` and `accept-edits` mode, is refused in `plan` mode, and runs in
+`bypass` mode. It asks even in `accept-edits` because a memory outlives the conversation: if
+injected text in a file or command output talked the agent into saving an instruction, it would
+steer every future session, so you see each one first. In `-p` mode it is declined unless you
+allow it (`--allowed-tools remember`).
+
+You can also save one yourself: `/memory add Never edit files under migrations/`, or
+`/memory add --user I prefer small commits`. `/memory` lists both files' memories. To change or
+delete one, edit the file; it applies from your next message.
+
+**How memories are used.** Both files are part of the system prompt of every conversation, so a
+memory is always in front of the model; there is no search step that can miss it. This keeps
+memory small and visible on purpose. It suits tens of facts, not thousands.
 
 ## Sessions
 

@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Callable
 from harness_cli import session as sessions
 from harness_cli.config import MODES, harness_home
 from harness_cli.instructions import instruction_sources
+from harness_cli.memory import add_memory, memory_file, memory_lines
 from harness_cli.models import ModelSpec, Registry, key_status
 from harness_cli.sandbox import describe, run_sandboxed
 from harnessy.context import SUMMARY_PROMPT, render_transcript
@@ -25,7 +26,8 @@ _MENTION = re.compile(r"(?<!\S)@([\w./~-]+)")
 INIT_PROMPT = """Look through this project (list files, read the README, build files and a few key \
 modules) and write a HARNESS.md at the workspace root for future coding sessions. Include: what the \
 project is, how to install, build, test and lint it (exact commands), the layout of the main folders, \
-and conventions a contributor must follow. Keep it under 80 lines. If HARNESS.md exists, improve it."""
+and conventions a contributor must follow. Keep it under 80 lines. If HARNESS.md exists, improve it, but \
+keep its "## Memory" section exactly as it is."""
 
 
 # --- parsing ---------------------------------------------------------------------------
@@ -274,6 +276,37 @@ def _compact(app: App, args: str) -> None:
     app.engine.reset_context()
     app.session.save()
     app.renderer.info(f"Compacted {before} messages into a summary.")
+
+
+@command("memory", "Show memories, or add one: /memory add [--user] <fact>")
+def _memory(app: App, args: str) -> None:
+    r = app.renderer
+    verb, _, rest = args.partition(" ")
+    if verb == "add":
+        scope = "project"
+        if rest.startswith("--user"):
+            scope, rest = "user", rest[len("--user") :].strip()
+        try:
+            r.info(add_memory(memory_file(app.workspace, scope), rest))
+        except ValueError as e:
+            r.error(f"Not saved: {e}")
+        return
+    if verb:
+        r.error("Use /memory to list, or /memory add [--user] <fact>.")
+        return
+    shown = False
+    for scope, label in (("project", "this project"), ("user", "every project")):
+        path = memory_file(app.workspace, scope)
+        facts = memory_lines(path)
+        if facts:
+            shown = True
+            r.note(r.style(f"{path} ({label})", "bold"))
+            for fact in facts:
+                r.note(f"  - {fact}")
+    if not shown:
+        r.info("No memories yet. The agent saves them with remember (you approve each), or add one with /memory add <fact>.")
+    else:
+        r.info("Edit or delete memories in those files; changes apply from your next message.")
 
 
 @command("init", "Have the agent write a HARNESS.md for this project")
