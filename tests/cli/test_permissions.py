@@ -16,10 +16,10 @@ def shell(cmd):
 @pytest.mark.parametrize(
     "mode, expected",
     [
-        ("default", {"read_file": "allow", "write_file": "ask", "run_shell": "ask", "spawn_subagent": "allow", "notes__add": "ask"}),
-        ("accept-edits", {"read_file": "allow", "write_file": "allow", "run_shell": "ask", "spawn_subagent": "allow", "notes__add": "ask"}),
+        ("default", {"read_file": "allow", "write_file": "ask", "run_shell": "ask", "spawn_subagent": "ask", "notes__add": "ask"}),
+        ("accept-edits", {"read_file": "allow", "write_file": "allow", "run_shell": "ask", "spawn_subagent": "ask", "notes__add": "ask"}),
         ("plan", {"read_file": "allow", "write_file": "deny", "run_shell": "deny", "spawn_subagent": "deny", "notes__add": "deny"}),
-        ("bypass", {"read_file": "allow", "write_file": "allow", "run_shell": "ask", "spawn_subagent": "allow", "notes__add": "ask"}),
+        ("bypass", {"read_file": "allow", "write_file": "allow", "run_shell": "ask", "spawn_subagent": "ask", "notes__add": "ask"}),
     ],
 )
 def test_mode_table(mode, expected):
@@ -99,3 +99,9 @@ def test_set_mode_switches_policy():
 def test_every_mode_passes_trifecta_check(mode, tmp_path):
     hook, _ = make(mode=mode)
     check_trifecta([shell_tool(tmp_path)], [hook])
+
+
+def test_subagent_runs_without_asking_but_is_trifecta_guarded():
+    hook, asked = make(answers=[])
+    assert hook.before_tool(ToolCall("1", "spawn_subagent", {"task": "t"})) is None and not asked
+    assert hook.effective("spawn_subagent") == "allow (guarded)"

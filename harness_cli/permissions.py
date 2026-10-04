@@ -18,11 +18,14 @@ from harnessy.hooks import Block
 from harnessy.types import ToolCall
 
 # mode -> kind -> decision. Tools not in KIND (MCP tools) count as "execute".
+# spawn_subagent ("agent") carries every trifecta leg of the tools it can hand out, so the
+# week 7 check needs "ask" for it. PermissionHook approves it without asking the human,
+# because the child runs under this same hook and asks for each risky call itself.
 TABLE: dict[str, dict[str, Decision]] = {
-    "default": {"read": "allow", "edit": "ask", "execute": "ask", "agent": "allow"},
-    "accept-edits": {"read": "allow", "edit": "allow", "execute": "ask", "agent": "allow"},
+    "default": {"read": "allow", "edit": "ask", "execute": "ask", "agent": "ask"},
+    "accept-edits": {"read": "allow", "edit": "allow", "execute": "ask", "agent": "ask"},
     "plan": {"read": "allow", "edit": "deny", "execute": "deny", "agent": "deny"},
-    "bypass": {"read": "allow", "edit": "allow", "execute": "ask", "agent": "allow"},
+    "bypass": {"read": "allow", "edit": "allow", "execute": "ask", "agent": "ask"},
 }
 MAIN_ARGS = ("command", "path", "pattern", "url", "task")
 
@@ -75,6 +78,15 @@ class Rule:
 
 
 class PermissionHook(ApprovalHook):
+    def effective(self, name: str) -> str:
+        """The decision as the user experiences it (for /tools)."""
+        if name in self.always:
+            return "allow (always)"
+        decision = self.policy.get(name, self.default)
+        if decision == "ask" and (self.mode == "bypass" or kind_of(name) == "agent"):
+            return "allow (guarded)" if kind_of(name) == "agent" else "allow (bypass)"
+        return decision
+
     def __init__(self, mode: str, tool_names: Iterable[str], allow: Iterable[str] = (), deny: Iterable[str] = (), ask_human: AskHuman | None = None):
         self.tool_names = list(tool_names)
         super().__init__(policy_for(mode, self.tool_names), approver=None, default="ask")
@@ -100,7 +112,7 @@ class PermissionHook(ApprovalHook):
         rule = next((r for r in self.deny if r.matches(call)), None)
         if rule:
             return Block(f"'{name}' is blocked by the permission rule {rule}. Don't retry it; find another way or ask the user.")
-        if decision == "allow" or self.mode == "bypass" or name in self.always:
+        if decision == "allow" or self.mode == "bypass" or name in self.always or kind_of(name) == "agent":
             return None
         if any(r.matches(call) for r in self.allow):
             return None

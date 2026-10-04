@@ -21,7 +21,7 @@ from harnessy.models.base import Model
 from harnessy.streaming import Done, StreamingModel, TextDelta, ToolEnd, ToolStart
 from harnessy.types import Message, Tool, ToolCall, ToolResult, Usage
 
-__all__ = ["ApprovalRequest", "Done", "Engine", "TextDelta", "ToolEnd", "ToolStart"]
+__all__ = ["ApprovalRequest", "Done", "Engine", "Interrupted", "TextDelta", "ToolEnd", "ToolStart"]
 
 TURN_TIMEOUT_S = 3600.0
 TURN_MAX_TOKENS = 10_000_000  # per turn; max_steps and max_cost_usd are the real limits
@@ -33,6 +33,11 @@ class ApprovalRequest:
 
     call: ToolCall
     reply: queue.Queue = field(default_factory=queue.Queue, compare=False)
+
+
+@dataclass(frozen=True)
+class Interrupted:
+    """Ctrl-C arrived while waiting for the turn; it will stop at the next model or tool call."""
 
 
 class _Cancel(Hook):
@@ -125,7 +130,14 @@ class Engine:
 
         threading.Thread(target=work, daemon=True, name="harness-turn").start()
         while True:
-            item = events.get()
+            try:
+                item = events.get()
+            except KeyboardInterrupt:
+                if self._cancel.flag.is_set():
+                    raise  # second Ctrl-C in one turn
+                self.cancel()
+                yield Interrupted()
+                continue
             if isinstance(item, BaseException):
                 raise item
             if isinstance(item, Done):
