@@ -51,7 +51,7 @@ def test_approval_round_trip_yes():
     eng, _ = engine([tool_reply(call), text_reply("done")])
     events = drive(eng, "list", [], answer=True)
     kinds = [type(e).__name__ for e in events if not isinstance(e, TextDelta)]
-    assert kinds == ["ApprovalRequest", "ToolStart", "ToolEnd", "Done"]
+    assert kinds == ["ModelStart", "ApprovalRequest", "ToolStart", "ToolEnd", "ModelStart", "Done"]
     end = next(e for e in events if isinstance(e, ToolEnd))
     assert end.result.content == "ran ls" and not end.result.is_error
 

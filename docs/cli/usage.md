@@ -150,7 +150,17 @@ Done — `notes.txt` contains `hello`.
 | Ctrl-D, `/exit` | quit |
 
 Each tool call shows as one line, `● tool(main argument)`, followed by the first line of its
-result, `⎿ ...`, in red if it failed. Approval prompts show the command, or the lines a file
+result, `⎿ ...`, in red if it failed. While a tool runs, or while the model is thinking before
+its first word, an animated line shows what's happening and for how long:
+
+```
+● run_shell(uv run pytest -q)
+  ⠹ Running… 12s · Ctrl-C to interrupt
+```
+
+It appears only after 0.3 s, so quick tools don't flicker, and it is erased as soon as the
+result, text or an approval prompt arrives. It is shown only on a terminal: headless `-p`
+output, pipes and files never contain it. Approval prompts show the command, or the lines a file
 edit removes (`-`) and adds (`+`).
 
 ## Headless mode (`-p`)

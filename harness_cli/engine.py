@@ -21,7 +21,7 @@ from harnessy.models.base import Model
 from harnessy.streaming import Done, StreamingModel, TextDelta, ToolEnd, ToolStart
 from harnessy.types import Message, Tool, ToolCall, ToolResult, Usage
 
-__all__ = ["ApprovalRequest", "Done", "Engine", "Interrupted", "TextDelta", "ToolEnd", "ToolStart"]
+__all__ = ["ApprovalRequest", "Done", "Engine", "Interrupted", "ModelStart", "TextDelta", "ToolEnd", "ToolStart"]
 
 TURN_TIMEOUT_S = 3600.0
 TURN_MAX_TOKENS = 10_000_000  # per turn; max_steps and max_cost_usd are the real limits
@@ -36,6 +36,11 @@ class ApprovalRequest:
 
     call: ToolCall
     reply: queue.Queue = field(default_factory=queue.Queue, compare=False)
+
+
+@dataclass(frozen=True)
+class ModelStart:
+    """A model call is about to start (the UI shows "Thinking…" until text or a tool arrives)."""
 
 
 @dataclass(frozen=True)
@@ -55,10 +60,13 @@ class _Cancel(Hook):
 
 
 class _Emit(Hook):
-    """Tool events. It runs after the permission hook, so ToolStart means the tool really runs."""
+    """Model-call and tool events. It runs after the permission hook, so ToolStart means the tool really runs."""
 
     def __init__(self, engine: Engine):
         self.engine = engine
+
+    def before_model(self, view: list[Message]) -> None:
+        self.engine._put(ModelStart())
 
     def before_tool(self, call: ToolCall) -> None:
         self.engine._put(ToolStart(call))

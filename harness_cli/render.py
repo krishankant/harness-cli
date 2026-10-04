@@ -7,6 +7,8 @@ from __future__ import annotations
 import json
 import os
 import sys
+import threading
+import time
 from typing import Callable, TextIO
 
 from harness_cli.permissions import main_argument
@@ -21,6 +23,87 @@ def use_color(out: TextIO) -> bool:
     return bool(getattr(out, "isatty", lambda: False)())
 
 
+class Spinner:
+    """One animated status line ("⠹ Running… 12s · Ctrl-C to interrupt") drawn by a background
+    thread while a tool runs or the model is thinking. It waits `delay` seconds before drawing,
+    so quick work never flickers, and stop() erases the line before anything else is printed."""
+
+    FRAMES = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
+    HINT = "Ctrl-C to interrupt"
+
+    def __init__(
+        self,
+        out: TextIO,
+        enabled: bool,
+        delay: float = 0.3,
+        interval: float = 0.1,
+        clock: Callable[[], float] = time.monotonic,
+        style: Callable[[str], str] = lambda text: text,
+    ):
+        self.out = out
+        self.enabled = enabled
+        self.delay = delay
+        self.interval = interval
+        self.clock = clock
+        self.style = style
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+        self._lock = threading.Lock()
+        self._drawn = False
+
+    @property
+    def active(self) -> bool:
+        return self._thread is not None
+
+    def start(self, label: str) -> None:
+        self.stop()
+        if not self.enabled:
+            return
+        self._stop = threading.Event()
+        self._drawn = False
+        started = self.clock()
+        stop = self._stop
+
+        def run() -> None:
+            if stop.wait(self.delay):
+                return
+            frame = 0
+            while not stop.is_set():
+                elapsed = int(self.clock() - started)
+                line = f"{self.FRAMES[frame % len(self.FRAMES)]} {label} {elapsed}s · {self.HINT}"
+                with self._lock:
+                    if stop.is_set():
+                        return
+                    self.out.write("\r\033[2K" + self.style(line))
+                    self.out.flush()
+                    self._drawn = True
+                frame += 1
+                stop.wait(self.interval)
+
+        self._thread = threading.Thread(target=run, daemon=True, name="harness-spinner")
+        self._thread.start()
+
+    def stop(self) -> None:
+        thread, self._thread = self._thread, None
+        if thread is None:
+            return
+        self._stop.set()
+        thread.join()
+        with self._lock:
+            if self._drawn:
+                self.out.write("\r\033[2K")
+                self.out.flush()
+                self._drawn = False
+
+
+def busy_label(call: ToolCall) -> str:
+    if call.name == "run_shell":
+        return "Running…"
+    if call.name == "spawn_subagent":
+        return "Subagent working…"
+    return "Working…"
+
+
 def summarize_call(call: ToolCall, limit: int = 90) -> str:
     arg = main_argument(call) or json.dumps(call.arguments, default=str)
     arg = " ".join(arg.split())
@@ -33,6 +116,9 @@ class Renderer:
         self.color = use_color(out) if color is None else color
         self.input_fn = input_fn
         self._at_line_start = True
+        # Animate only on a real terminal; pipes, files and -p output stay clean.
+        animate = bool(getattr(out, "isatty", lambda: False)()) and color is not False
+        self.spinner = Spinner(out, enabled=animate, style=lambda text: self.style(text, "dim"))
 
     def style(self, text: str, *names: str) -> str:
         if not self.color or not names:
@@ -41,6 +127,7 @@ class Renderer:
         return f"\033[{codes}m{text}\033[0m"
 
     def write(self, text: str) -> None:
+        self.spinner.stop()  # every output goes through here, so the spinner never overlaps it
         if not text:
             return
         self.out.write(text)
@@ -56,6 +143,17 @@ class Renderer:
             self.write("\n")
 
     # --- events ---
+
+    def busy(self, label: str) -> None:
+        """Show the spinner until the next output. Only from a fresh line."""
+        if self._at_line_start:
+            self.spinner.start(label)
+
+    def busy_for(self, call: ToolCall) -> None:
+        self.busy(busy_label(call))
+
+    def idle(self) -> None:
+        self.spinner.stop()
 
     def text(self, delta: str) -> None:
         self.write(delta)

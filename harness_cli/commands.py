@@ -285,6 +285,7 @@ def run_shell_escape(app: App, command_line: str) -> None:
     """!command: run it yourself, through the same sandbox; nothing goes to the model."""
     if not command_line:
         return
+    app.renderer.busy("Running…")
     result = run_sandboxed(command_line, app.workspace, app.settings.shell_timeout_s, app.settings.sandbox)
     if result.output.strip():
         app.renderer.note(result.output.rstrip())

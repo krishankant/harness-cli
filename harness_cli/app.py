@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 from harness_cli.config import Settings
-from harness_cli.engine import ApprovalRequest, Done, Engine, Interrupted, TextDelta, ToolEnd, ToolStart
+from harness_cli.engine import ApprovalRequest, Done, Engine, Interrupted, ModelStart, TextDelta, ToolEnd, ToolStart
 from harness_cli.instructions import build_system_prompt
 from harness_cli.permissions import PermissionHook
 from harness_cli.render import Renderer
@@ -106,6 +106,15 @@ class App:
         handle = on_event or self.show
         gen = self.engine.turn(prompt, self.session.messages)
         result: RunResult | None = None
+        try:
+            result = self._drain(gen, handle)
+        finally:
+            self.renderer.idle()
+        self._record(result)
+        return result
+
+    def _drain(self, gen: Any, handle: Callable[[Any], None]) -> RunResult:
+        result: RunResult | None = None
         while result is None:
             try:
                 for event in gen:
@@ -122,7 +131,6 @@ class App:
                     raise  # a second Ctrl-C in the same turn: give up on it
                 self.engine.cancel()
                 self._interrupted()
-        self._record(result)
         return result
 
     def _interrupted(self) -> None:
@@ -143,11 +151,15 @@ class App:
         r = self.renderer
         if isinstance(event, TextDelta):
             r.text(event.text)
+        elif isinstance(event, ModelStart):
+            r.busy("Thinking…")
         elif isinstance(event, ToolStart):
             r.tool_start(event.call)
+            r.busy_for(event.call)
         elif isinstance(event, ToolEnd):
             r.tool_end(event.call, event.result)
         elif isinstance(event, Done):
+            r.idle()
             r.end_text()
             res = event.result
             if res.stop_reason != "end_turn":
