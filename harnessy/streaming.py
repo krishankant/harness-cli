@@ -91,7 +91,7 @@ class _StreamHook(Hook):
 # --- Week 7 exercise -------------------------------------------------------------------
 
 
-def stream_agent(agent: Any, task: str) -> Iterator[Event]:
+def stream_agent(agent: Any, task: str, history: list[Message] | None = None) -> Iterator[Event]:
     """Run the agent on task and yield events as they happen.
 
     1. events = queue.Queue().
@@ -112,7 +112,7 @@ def stream_agent(agent: Any, task: str) -> Iterator[Event]:
 
     def work() -> None:
         try:
-            events.put(Done(copy.run(task)))
+            events.put(Done(copy.run(task, history) if history else copy.run(task)))
         except BaseException as e:  # noqa: BLE001 - handed to the caller's thread
             events.put(e)
 

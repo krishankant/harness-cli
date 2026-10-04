@@ -68,8 +68,10 @@ class Agent:
 
     # --- Week 2 exercise ---------------------------------------------------------------
 
-    def run(self, task: str) -> RunResult:
-        messages: list[Message] = [Message(role="user", text=task)]
+    def run(self, task: str, history: list[Message] | None = None) -> RunResult:
+        """Run one task. With history (an earlier RunResult.messages), the conversation
+        continues from those turns instead of starting fresh (harness-cli)."""
+        messages: list[Message] = [*(history or []), Message(role="user", text=task)]
         steps: list[Step] = []
         usage = Usage()
         specs = self._registry.specs()
@@ -129,9 +131,9 @@ class Agent:
                 continue
             return finish("end_turn", text)
 
-    def stream(self, task: str) -> Iterator[Event]:
+    def stream(self, task: str, history: list[Message] | None = None) -> Iterator[Event]:
         """Run the task and yield TextDelta, ToolStart, ToolEnd and finally Done events (week 7)."""
-        return stream_agent(self, task)
+        return stream_agent(self, task, history)
 
     def _run_tool(self, call: ToolCall) -> ToolResult:
         checked = self._hooks.before_tool(call)
