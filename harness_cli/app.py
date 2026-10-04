@@ -42,6 +42,8 @@ class App:
         self.session = session or Session.new(self.workspace, settings.provider, self.model.name)
         self.engine: Engine
         self.build()
+        if settings.max_cost_usd is not None and not self.engine.priced():
+            renderer.warn(f"No price for model '{self.model.name}' in harnessy/cost.py: --max-cost can't be enforced.")
 
     def build(self) -> None:
         """(Re)build tools, system prompt and engine for the current model; keeps the session,

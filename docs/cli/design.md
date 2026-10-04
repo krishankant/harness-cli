@@ -1,6 +1,6 @@
 # harness-cli design
 
-Status: v0.1 design, 2026-10-03. Approach A from [approaches.md](approaches.md): a
+Status: v0.1, built 2026-10-03 (this page describes the code as built; see "Changes from the first draft" at the end). Approach A from [approaches.md](approaches.md): a
 line-based CLI on top of the harnessy library.
 
 ## Goal
@@ -57,8 +57,9 @@ Each file has one job and can be tested without the others.
 | `instructions.py` | Builds the system prompt: base prompt + environment + `HARNESS.md`/`AGENTS.md`/`CLAUDE.md` | stdlib |
 | `sandbox.py` | Seatbelt profile and `run_sandboxed(command, workspace, mode)` | harnessy.tools.sandbox |
 | `tools.py` | `build_tools(...)`: read/write/edit/list/search files, `run_shell`, `todo`, `spawn_subagent`, MCP tools | harnessy.tools, todo, subagents, mcp |
-| `permissions.py` | Modes → `ApprovalHook` policy; `Rule` matching like `run_shell(git status*)`; `Approver` that consults rules, then the human | harnessy.approvals |
+| `permissions.py` | `PermissionHook` (an `ApprovalHook`): mode table, `Rule` matching like `run_shell(git status*)`, then the human | harnessy.approvals |
 | `engine.py` | `Engine.turn(prompt, history)` → iterator of events; cancel on Ctrl-C | harnessy.loop, streaming |
+| `app.py` | `App`: one conversation in one workspace; builds model, tools and engine, runs and saves turns | all of the above |
 | `session.py` | `Session` save/load as JSON lines; `latest(project)`, `list(project)` | harnessy.tracer.to_jsonable |
 | `commands.py` | Slash command registry, custom commands from `.harness/commands/*.md`, `@file` expansion | stdlib |
 | `render.py` | Colours, tool lines, approval prompt, cost line | stdlib |
@@ -113,8 +114,10 @@ Tools fall into three kinds:
 | edit | `write_file`, `edit_file` |
 | execute | `run_shell`, every MCP tool |
 
-`spawn_subagent` is allowed in every mode except plan: the child gets the same
-`ApprovalHook`, so a subagent asks for exactly what its parent would have to ask for.
+`spawn_subagent` runs without asking in every mode except plan: the child gets the same
+`PermissionHook`, so a subagent asks for exactly what its parent would have to ask for. Its
+policy entry is still `ask` (the hook approves it itself), because the tool carries every
+trifecta leg of the tools it hands out and the week 7 check requires `ask` or `deny` for it.
 
 | Mode | read | edit | execute | Like |
 | --- | --- | --- | --- | --- |
@@ -137,10 +140,12 @@ passes for a stated reason, and turning approvals off stays a named, visible cho
 ```
 
 A rule is `tool` or `tool(pattern)`, matched with `fnmatch` against the call's main
-argument (`command` for `run_shell`, `path` for file tools). Order: a matching deny rule
-says no; a matching allow rule says yes; a tool in `allow` by bare name becomes `allow`
-in the policy table; otherwise the human is asked. In `-p` mode nobody can be asked, so
-an unmatched `ask` is declined and the model is told why.
+argument (`command` for `run_shell`, `path` for file tools). Order: the mode says deny →
+refused; a matching deny rule → refused (this applies to read tools too); the mode says
+allow, the tool was answered "always", or an allow rule matches → runs; otherwise the human
+is asked. Allow rules never change the policy table, so a bare `run_shell` allow rule still
+leaves `run_shell` at `ask` for the trifecta check. In `-p` mode nobody can be asked, so an
+unmatched `ask` is declined and the model is told how the user could allow it.
 
 At an interactive prompt the answers are `y` (once), `n` (no), and `a` (always allow this
 tool for the rest of the session).
@@ -158,15 +163,18 @@ two layers and their limits are described in harnessy's `docs/sandbox.md`.
 
 `~/.harness/sessions/<project-key>/<id>.jsonl`, where the project key is the workspace
 path with `/` turned into `-`. Line 1 is a header (`id`, `workspace`, `created`,
-`provider`, `model`); each later line is one `Message` in harnessy's JSON form. After
-every turn the new messages are appended, plus a `usage` line. `--continue` loads the
-newest file for the folder; `--resume <id>` loads that id (a prefix is enough).
+`provider`, `model`); each later line is one `Message` in harnessy's JSON form; the last
+line holds usage and cost. After every turn the whole file is written to a temp file and
+renamed over the old one, so a crash never leaves half a file; unreadable lines are still
+skipped on load. `--continue` loads the newest file for the folder; `--resume <id>` loads
+that id (its start or its last 4 characters are enough); `--resume` alone lists them.
 
 ## Slash commands
 
 | Command | Does |
 | --- | --- |
 | `/help` | List commands, including custom ones |
+| `/status` | Workspace, model, mode, sandbox, session, instruction files |
 | `/clear` | Start a new conversation (new session id) |
 | `/compact [focus]` | Replace the history with a model-written summary |
 | `/cost` | Tokens and dollars for this session |
@@ -208,8 +216,10 @@ blocked); `2` bad flags or settings.
 - A missing API key or model name is reported in one line at startup, before the prompt.
 - Settings files with bad JSON stop the CLI with the file path and the parser message
   (exit 2), never a traceback.
-- Ctrl-C during a turn cancels it at the next model or tool boundary; a second Ctrl-C
-  within a turn exits. Ctrl-C at an empty prompt clears the line; Ctrl-D exits.
+- Ctrl-C during a turn cancels it at the next model or tool boundary (an `Interrupted`
+  event; a running tool finishes first); a second Ctrl-C abandons the turn and returns
+  to the prompt. A turn that ended early gets a closing assistant message in the history,
+  so roles keep alternating for every provider. Ctrl-C at an empty prompt clears the line; Ctrl-D exits.
 - An MCP server that fails to start is reported and skipped; the session goes on
   without its tools.
 
@@ -222,3 +232,18 @@ cancel); session save/load round trip, `latest`, prefix resume; slash command pa
 custom commands and `@file` expansion; headless output formats and exit codes; the
 Seatbelt sandbox on macOS (skipped elsewhere). The existing 325 harnessy tests must
 stay green.
+
+## Changes from the first draft
+
+Found while building and testing; the sections above already describe the result.
+
+| Draft said | Built | Why |
+| --- | --- | --- |
+| A bare-name allow rule turns into `allow` in the policy | Allow rules are checked in the hook; the policy table never changes | An `allow` entry for `run_shell` would fail the lethal-trifecta check |
+| `spawn_subagent` is `allow` | `ask` in the policy, approved by the hook itself | Same check: the tool inherits `run_shell`'s external-send tag (a test caught it) |
+| Sessions appended per turn | Whole file rewritten atomically | Simpler, and never half-written |
+| `Approver` callback + `build_permissions()` | One `PermissionHook` class | Rules, modes and "always" answers live in one place, shared with subagents |
+| (not in draft) | `App` in `app.py` | REPL and headless mode share turn running, saving and model switching |
+| (not in draft) | Keep the last 12 tool results in full, not harnessy's 3 | In a live run the model lost pytest output two steps after reading it |
+| `--allowed-tools a b c` | `--allowed-tools "a,b"`, repeatable | A space-separated list swallowed the prompt argument |
+| (not in draft) | A warning when `--max-cost` can't be enforced | A model missing from the price table would ignore the budget silently |

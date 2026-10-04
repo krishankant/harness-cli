@@ -107,3 +107,8 @@ def test_resume_without_id_lists(workspace):
     run(workspace, ["-p", "remember this"], [text_reply("ok")])
     code, out, _, _ = run(workspace, ["-r"], [])
     assert code == 0 and "remember this" in out
+
+
+def test_max_cost_warns_for_unpriced_model(workspace):
+    code, _, err, _ = run(workspace, ["-p", "x", "--max-cost", "1"], [text_reply("ok")])
+    assert code == 0 and "can't be enforced" in err

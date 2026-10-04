@@ -14,6 +14,8 @@ commands are small separate modules.
 threading, queue), plus harnessy's existing dependencies (anthropic, openai, python-dotenv,
 pyyaml). uv for environments, pytest for tests, hatchling to build the `harness` script.
 
+**Status:** all tasks done on 2026-10-03; 87 CLI tests plus the 325 harnessy tests pass. Where the build changed an interface named below, `design.md` has the table "Changes from the first draft".
+
 **Spec:** [`docs/cli/design.md`](design.md) (why this approach: [`approaches.md`](approaches.md))
 
 ## Global Constraints
@@ -58,12 +60,12 @@ pyyaml). uv for environments, pytest for tests, hatchling to build the `harness`
   `RunResult.messages` holds the whole conversation, history included.
 - Consumed by: `harness_cli/engine.py` (Task 5).
 
-- [ ] Write tests: a second run with `history=first.messages` sends the earlier turns to the
+- [x] Write tests: a second run with `history=first.messages` sends the earlier turns to the
   model (`ScriptedModel.calls[-1].messages`) and its `RunResult.messages` starts with them;
   `history=None` behaves exactly as before.
-- [ ] Implement: `messages = [*(history or []), Message(role="user", text=task)]`; pass
+- [x] Implement: `messages = [*(history or []), Message(role="user", text=task)]`; pass
   `history` through `stream`/`stream_agent`.
-- [ ] Run `uv run pytest -q` — all 325 old tests plus the new ones pass. Commit.
+- [x] Run `uv run pytest -q` — all 325 old tests plus the new ones pass. Commit.
 
 ### Task 2: Settings and providers
 
@@ -83,12 +85,12 @@ pyyaml). uv for environments, pytest for tests, hatchling to build the `harness`
   `context_budget_tokens` → `engine.Engine`; `mcpServers` → `tools.start_mcp`;
   `system_prompt`, `append_system_prompt` → `instructions.build_system_prompt`.
 
-- [ ] Tests: defaults when no files exist; project file overrides user file; flags override
+- [x] Tests: defaults when no files exist; project file overrides user file; flags override
   both; `permissions.allow` lists are concatenated (user + project), scalars are replaced;
   invalid JSON raises `ConfigError` naming the file; unknown `permission_mode` raises.
-- [ ] Implement `config.py`; `providers.py` maps `anthropic`/`openai`/`ollama` (OpenAI client
+- [x] Implement `config.py`; `providers.py` maps `anthropic`/`openai`/`ollama` (OpenAI client
   with `http://localhost:11434/v1`) and wraps in `RetryingModel`.
-- [ ] Run tests, commit.
+- [x] Run tests, commit.
 
 ### Task 3: Tools and sandbox
 
@@ -107,17 +109,17 @@ pyyaml). uv for environments, pytest for tests, hatchling to build the `harness`
 - Consumes: `harnessy.tools.code.code_tools`, `harnessy.tools.sandbox.run_command`,
   `harnessy.subagents.subagent_tool`, `harnessy.mcp`.
 
-- [ ] Tests: `list_files` respects a glob and skips `.git`, `.venv`, `node_modules`;
+- [x] Tests: `list_files` respects a glob and skips `.git`, `.venv`, `node_modules`;
   `search_files` finds a regex with `path:line: text` and skips binary files
   (`test_search_skips_binary`); file tools refuse `../outside`; `run_shell` returns exit code
   and output; on macOS the Seatbelt sandbox blocks a write outside the workspace and allows
   one inside, also for a workspace path containing a space
   (`test_sandbox_workspace_with_space`); `build_system_prompt` includes `HARNESS.md` then
   `AGENTS.md`, and the append prompt last.
-- [ ] Implement. Seatbelt profile: allow default; deny network; deny writes except the
+- [x] Implement. Seatbelt profile: allow default; deny network; deny writes except the
   workspace, temp folders and `/dev`; deny reads of `~/.ssh`, `~/.aws`, `~/.gnupg`,
   `~/.harness`. Resolve the workspace path (symlinks) before putting it in the profile.
-- [ ] Run tests, commit.
+- [x] Run tests, commit.
 
 ### Task 4: Permissions
 
@@ -135,11 +137,11 @@ pyyaml). uv for environments, pytest for tests, hatchling to build the `harness`
   `Approver.set_mode(mode)` and `ApprovalHook.policy` refreshed by `apply_mode(hook, approver, mode, tool_names)`.
 - Consumed by: `engine.Engine` (Task 5), `/mode` in `commands.py` (Task 7).
 
-- [ ] Tests: the mode table from the spec for every kind; `Rule("run_shell(git *)")` matches
+- [x] Tests: the mode table from the spec for every kind; `Rule("run_shell(git *)")` matches
   `git status` and not `rm`; deny beats allow; a bare-name allow becomes `allow` in the
   policy; the human answer `a` adds to `.always`; no `ask_human` (headless) → declined;
   bypass mode passes `check_trifecta`.
-- [ ] Implement, run tests, commit.
+- [x] Implement, run tests, commit.
 
 ### Task 5: Engine
 
@@ -156,11 +158,11 @@ pyyaml). uv for environments, pytest for tests, hatchling to build the `harness`
   `Engine.usage`, `Engine.cost_usd` running totals.
 - Consumes: Task 1 `Agent.run(history=...)`, Task 4 `Approver`.
 
-- [ ] Tests: a two-turn conversation keeps history; an approval round trip — the consumer
+- [x] Tests: a two-turn conversation keeps history; an approval round trip — the consumer
   receives `ApprovalRequest`, puts `True`, and the tool runs; putting `False` gives the model
   an error result; `cancel()` during a turn ends it with stop reason `blocked`; usage and cost
   accumulate across turns.
-- [ ] Implement with one worker thread per turn and a `CancelHook` (blocks `before_model` and
+- [x] Implement with one worker thread per turn and a `CancelHook` (blocks `before_model` and
   `before_tool` once cancelled). Commit.
 
 ### Task 6: Sessions
@@ -176,10 +178,10 @@ pyyaml). uv for environments, pytest for tests, hatchling to build the `harness`
   `list_sessions(workspace) -> list[SessionInfo]`; `message_from_json(dict) -> Message`.
 - Consumed by: `repl.py`, `headless.py`, `/sessions`, `/resume`.
 
-- [ ] Tests: save/load round trip keeps text, tool calls, tool results and `ProviderRaw`;
+- [x] Tests: save/load round trip keeps text, tool calls, tool results and `ProviderRaw`;
   `latest` picks the newest; a prefix resumes; an ambiguous prefix raises; a corrupt line is
   skipped (`test_load_skips_corrupt_line`); sessions of another folder are not listed.
-- [ ] Implement (write to a temp file, then `os.replace`). Commit.
+- [x] Implement (write to a temp file, then `os.replace`). Commit.
 
 ### Task 7: Commands, rendering, REPL
 
@@ -195,12 +197,12 @@ pyyaml). uv for environments, pytest for tests, hatchling to build the `harness`
   `Renderer(out, color: bool)` with `text`, `tool_start`, `tool_end`, `ask(call) -> str`,
   `info`, `error`; `run_repl(app, input_fn=input, out=sys.stdout) -> int`.
 
-- [ ] Tests: parsing of `/cmd args`, `!ls`, plain text; `@README.md` is replaced by a
+- [x] Tests: parsing of `/cmd args`, `!ls`, plain text; `@README.md` is replaced by a
   fenced block with the file's contents and a missing file is left alone; custom command
   `$ARGUMENTS` substitution and the `description:` line; a scripted REPL session
   (`input_fn` from a list) runs two prompts and `/cost`, `/mode plan`, `/exit`; EOF at the
   approval prompt counts as no (`test_prompt_eof_is_no`).
-- [ ] Implement; `/compact` uses harnessy's `render_transcript` and `SUMMARY_PROMPT`.
+- [x] Implement; `/compact` uses harnessy's `render_transcript` and `SUMMARY_PROMPT`.
   Commit.
 
 ### Task 8: Headless mode, `main`, packaging
@@ -217,11 +219,11 @@ pyyaml). uv for environments, pytest for tests, hatchling to build the `harness`
   `build_parser() -> argparse.ArgumentParser`; `main(argv=None, model_factory=make_model) -> int`
   (tests inject a `ScriptedModel` factory).
 
-- [ ] Tests: `text`, `json` and `stream-json` outputs; exit code 0 on `end_turn` and 1 on
+- [x] Tests: `text`, `json` and `stream-json` outputs; exit code 0 on `end_turn` and 1 on
   `max_steps`; prompt from stdin when `-p` has no argument; `--permission-mode plan` blocks
   `write_file`; bad settings JSON exits 2 with the file name; no ANSI codes when the output is
   not a terminal (`test_no_color_when_not_tty`); `-c` continues the latest session.
-- [ ] Implement; `uv sync`; check `uv run harness --help` works. Commit.
+- [x] Implement; `uv sync`; check `uv run harness --help` works. Commit.
 
 ### Task 9: Documentation
 
@@ -230,7 +232,7 @@ pyyaml). uv for environments, pytest for tests, hatchling to build the `harness`
   sandbox, sessions, recipes)
 - Modify: `README.md` (what harness-cli is, quick start, links to `docs/cli/`)
 
-- [ ] Write, check every flag in `usage.md` against `harness --help`, commit.
+- [x] Write, check every flag in `usage.md` against `harness --help`, commit.
 
 ---
 

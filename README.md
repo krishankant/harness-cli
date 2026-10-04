@@ -1,4 +1,49 @@
-# harnessy
+# harness-cli
+
+A coding agent for your terminal, in the style of Claude Code and Codex, built on **harnessy**:
+the small, provider-neutral agent harness from the course this repo was copied from.
+
+```bash
+uv sync
+uv run harness                                  # chat in the current folder
+uv run harness -p "summarize README.md"         # one answer, then exit
+git diff | uv run harness -p "review this diff" # pipe input in
+uv run harness -c                               # continue the last conversation here
+```
+
+```
+› Create notes.txt containing the single word hello.
+? Allow write_file → notes.txt
+    + hello
+  [y]es  [n]o  [a]lways for this session › y
+● write_file(notes.txt)
+  ⎿ Wrote 6 characters to notes.txt
+Done — `notes.txt` contains `hello`.
+```
+
+**What it does:** multi-turn chat with streaming output; file reading, searching and exact-match
+editing; a shell confined to the workspace (macOS Seatbelt: no network, no writes outside);
+approval prompts with four permission modes and allow/deny rules; slash commands and your own
+Markdown commands; `HARNESS.md`/`AGENTS.md`/`CLAUDE.md` project instructions; saved, resumable
+sessions; a headless `-p` mode with text, JSON and JSON-lines output; subagents, a todo list
+and MCP servers; Anthropic, OpenAI and local Ollama models.
+
+| Read | For |
+| --- | --- |
+| [`docs/cli/usage.md`](docs/cli/usage.md) | Setup, every flag, slash commands, permissions, sandbox, sessions, settings, MCP, recipes |
+| [`docs/cli/design.md`](docs/cli/design.md) | How it is built: architecture, units, one turn end to end, permissions, error handling |
+| [`docs/cli/approaches.md`](docs/cli/approaches.md) | The three ways to build a CLI on harnessy, and why this one |
+| [`docs/cli/PLAN.md`](docs/cli/PLAN.md) | The implementation plan and the roadmap after v0.1 |
+
+**Layout:** `harness_cli/` is the program (flags, settings, terminal, sessions, permissions);
+`harnessy/` is the engine (loop, tools, hooks, approvals, streaming, context, sandbox, MCP).
+The only change to harnessy is that `Agent.run` and `Agent.stream` accept a `history`, so a run
+can continue a conversation. Tests: `uv run pytest` (no keys, no network; `tests/cli/` covers
+the CLI).
+
+---
+
+# The harnessy library (the course)
 
 A small agent harness you build yourself, one week at a time. It works with any model provider: Anthropic, OpenAI, or a local model through Ollama. Each week you read a short lesson, fill in the missing pieces of the code, and make the tests pass.
 
