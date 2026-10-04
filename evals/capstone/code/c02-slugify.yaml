@@ -1,0 +1,32 @@
+id: c02-slugify
+agent: code
+difficulty: easy
+prompt: "slugify() in slug.py should turn a title into a lowercase, hyphen-separated slug. The tests fail; fix the code."
+files:
+  slug.py: |
+    import re
+
+
+    def slugify(title):
+        """'Hello, World!' -> 'hello-world'"""
+        words = re.findall(r"[a-z0-9]+", title)
+        return "_".join(words)
+  test_slug.py: |
+    from slug import slugify
+
+
+    def test_simple_title():
+        assert slugify("Hello, World!") == "hello-world"
+
+
+    def test_spaces_and_numbers():
+        assert slugify("  Agent  Harness 101 ") == "agent-harness-101"
+checks:
+  # A hidden behaviour check: it runs the code directly, so editing or skipping the tests can't pass it.
+  - type: command_succeeds
+    command: "python -c \"from slug import slugify; assert slugify('Hello, World!') == 'hello-world' and slugify('A  B 7') == 'a-b-7'\""
+  - type: command_succeeds
+    command: "python -m pytest -q -p no:cacheprovider"
+  - type: file_contains
+    path: test_slug.py
+    text: 'assert slugify("Hello, World!") == "hello-world"'

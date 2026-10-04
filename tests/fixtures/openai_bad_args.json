@@ -1,0 +1,19 @@
+{
+  "id": "chatcmpl-3",
+  "object": "chat.completion",
+  "model": "example-model",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "tool_calls": [
+          {"id": "call_1", "type": "function", "function": {"name": "add", "arguments": "{\"a\": 17,"}},
+          {"id": "call_2", "type": "function", "function": {"name": "add", "arguments": "[1, 2]"}}
+        ]
+      }
+    }
+  ],
+  "usage": {"prompt_tokens": 60, "completion_tokens": 10, "total_tokens": 70}
+}

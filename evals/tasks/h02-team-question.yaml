@@ -1,0 +1,15 @@
+id: h02-team-question
+difficulty: hard
+toolsets: [files]
+max_steps: 10
+prompt: "The files team/amara.txt, team/bo.txt, team/chen.txt and team/dita.txt describe the team. Who has been on the team the longest, and what is their role?"
+files:
+  team/amara.txt: "Amara Okafor. Joined in 2019. Role: backend engineer."
+  team/bo.txt: "Bo Lindqvist joined the team in 2021 as a designer."
+  team/chen.txt: "Chen Wei - data scientist - started 2016 (moved from the research group)."
+  team/dita.txt: "Dita Novak, product manager. On the team since 2018."
+checks:
+  - type: answer_contains
+    text: "Chen"
+  - type: answer_contains
+    text: "data scientist"

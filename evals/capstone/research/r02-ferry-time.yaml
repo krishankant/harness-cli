@@ -1,0 +1,9 @@
+id: r02-ferry-time
+agent: research
+difficulty: easy
+prompt: "How long does the ferry crossing from Marrow Point to Kettleby take? Cite your source."
+checks:
+  - type: answer_matches
+    pattern: "\\b40 ?min"
+  - type: citations
+    facts: ["40 minutes"]

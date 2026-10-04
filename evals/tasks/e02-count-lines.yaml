@@ -1,0 +1,17 @@
+id: e02-count-lines
+difficulty: easy
+toolsets: [files]
+max_steps: 4
+prompt: "How many lines does poem.txt have? Answer with just the number."
+files:
+  poem.txt: |
+    The loop begins with a single call,
+    a model that answers, or none at all.
+    It asks for a tool, we run it, and then
+    we hand back the result and ask it again.
+    It stops when it's done, or a limit is hit,
+    and every step's written down, bit by bit.
+    That's all there is to it.
+checks:
+  - type: answer_matches
+    pattern: "\\b7\\b"

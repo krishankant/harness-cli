@@ -1,0 +1,26 @@
+id: h04-action-items
+difficulty: hard
+toolsets: [files]
+max_steps: 8
+prompt: >-
+  Extract every action item from meeting.txt into actions.json: a JSON list of objects with the keys
+  "owner" (first name only) and "task" (the task text exactly as written, without the deadline in
+  parentheses), in the order they appear.
+files:
+  meeting.txt: |
+    Weekly sync, 12 September
+    Present: Priya Shah, Tom Reyes, Ines Moreau
+
+    Budget is on track. The office move is still planned for October.
+    ACTION: Priya Shah - send the updated budget (Friday)
+    We discussed the hiring plan; no decision yet.
+    ACTION: Tom Reyes - book the venue for the offsite (next week)
+    Ines raised the flaky CI tests again.
+    ACTION: Ines Moreau - quarantine the flaky tests (Wednesday)
+checks:
+  - type: json_valid
+    path: actions.json
+    equals:
+      - {owner: Priya, task: send the updated budget}
+      - {owner: Tom, task: book the venue for the offsite}
+      - {owner: Ines, task: quarantine the flaky tests}

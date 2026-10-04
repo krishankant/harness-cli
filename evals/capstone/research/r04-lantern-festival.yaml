@@ -1,0 +1,11 @@
+id: r04-lantern-festival
+agent: research
+difficulty: medium
+prompt: "What is the main event of the Kettleby Lantern Festival called, and in which month is the festival held? Cite your sources."
+checks:
+  - type: answer_contains
+    text: "Long Walk"
+  - type: answer_contains
+    text: "October"
+  - type: citations
+    facts: ["Long Walk", "October"]

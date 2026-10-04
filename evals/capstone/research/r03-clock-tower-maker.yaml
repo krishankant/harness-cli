@@ -1,0 +1,11 @@
+id: r03-clock-tower-maker
+agent: research
+difficulty: medium
+prompt: "Which company built the clock tower in Kettleby's market square, and in what year was that company founded? Cite your sources."
+checks:
+  - type: answer_contains
+    text: "Brassfield Clockworks"
+  - type: answer_contains
+    text: "1903"
+  - type: citations
+    facts: ["Brassfield Clockworks", "1903"]

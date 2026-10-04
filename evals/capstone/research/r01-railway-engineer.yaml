@@ -1,0 +1,11 @@
+id: r01-railway-engineer
+agent: research
+difficulty: easy
+prompt: "When did the Orwen Valley Railway open, and who was its first chief engineer? Cite your sources."
+checks:
+  - type: answer_contains
+    text: "1887"
+  - type: answer_contains
+    text: "Ada Voss"
+  - type: citations
+    facts: ["1887", "Ada Voss"]

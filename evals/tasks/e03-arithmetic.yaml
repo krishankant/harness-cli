@@ -1,0 +1,7 @@
+id: e03-arithmetic
+difficulty: easy
+max_steps: 2
+prompt: "What is 37 multiplied by 43? Answer with just the number."
+checks:
+  - type: answer_matches
+    pattern: "\\b1,?591\\b"

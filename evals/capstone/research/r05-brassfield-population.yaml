@@ -1,0 +1,9 @@
+id: r05-brassfield-population
+agent: research
+difficulty: hard
+prompt: "What was Brassfield's population at the most recent census? Cite your source."
+checks:
+  - type: answer_matches
+    pattern: "14,?280"
+  - type: citations
+    facts: ["14,280"]

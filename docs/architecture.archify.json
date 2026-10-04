@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "harnessy: an agent harness, layer by layer",
+    "output": "architecture-archify.html",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "core-loop", "label": "The core loop", "focus": ["task", "loop", "model", "providers"], "note": "Weeks 1-2: a task goes into the loop, which calls one model interface over any provider until it stops." },
+      { "id": "tools", "label": "Tools and MCP", "focus": ["loop", "registry", "tools", "mcp", "mcpservers"], "note": "Weeks 3, 7 and 9: every tool, local or MCP, goes through one registry." },
+      { "id": "control", "label": "Control and proof", "focus": ["loop", "context", "hooks", "tracer", "evals"], "note": "Weeks 4-6: context budget, hooks and approvals, traces and evals." }
+    ]
+  },
+  "components": [
+    { "id": "task", "type": "external", "label": "Task", "sublabel": "user or eval", "pos": [40, 230], "size": [150, 64] },
+    { "id": "context", "type": "backend", "label": "ContextManager", "sublabel": "budget + compaction", "pos": [40, 100], "size": [150, 64], "tag": "week 4" },
+    { "id": "loop", "type": "backend", "label": "Agent loop", "sublabel": "run / stream", "pos": [310, 230], "size": [150, 64], "tag": "week 2" },
+    { "id": "hooks", "type": "security", "label": "Hooks", "sublabel": "approvals, StopCheck, todo", "pos": [310, 100], "size": [150, 64], "tag": "week 6" },
+    { "id": "tracer", "type": "database", "label": "Tracer", "sublabel": "JSONL traces", "pos": [580, 100], "size": [150, 64], "tag": "week 5" },
+    { "id": "evals", "type": "frontend", "label": "Evals", "sublabel": "tasks, graders, runner", "pos": [850, 100], "size": [150, 64], "tag": "week 5" },
+    { "id": "model", "type": "backend", "label": "Model interface", "sublabel": "retry, stream, cost", "pos": [580, 230], "size": [150, 64], "tag": "weeks 1, 7" },
+    { "id": "providers", "type": "external", "label": "LLM providers", "sublabel": "Claude, OpenAI, Ollama", "pos": [850, 230], "size": [150, 64] },
+    { "id": "registry", "type": "security", "label": "Tool registry", "sublabel": "validate, timeout, trifecta", "pos": [310, 360], "size": [150, 64], "tag": "weeks 3, 7" },
+    { "id": "tools", "type": "backend", "label": "Local tools", "sublabel": "files, sandbox, web, data", "pos": [40, 360], "size": [150, 64] },
+    { "id": "mcp", "type": "backend", "label": "MCP client", "sublabel": "discover or initialize", "pos": [580, 360], "size": [150, 64], "tag": "week 9" },
+    { "id": "mcpservers", "type": "external", "label": "MCP servers", "sublabel": "stdio subprocess", "pos": [850, 360], "size": [150, 64] }
+  ],
+  "connections": [
+    { "id": "task-in", "from": "task", "to": "loop", "label": "run(task)", "variant": "emphasis" },
+    { "id": "loop-model", "from": "loop", "to": "model", "label": "messages + tools", "variant": "emphasis" },
+    { "id": "model-api", "from": "model", "to": "providers", "label": "HTTPS" },
+    { "id": "loop-context", "from": "loop", "to": "context", "label": "prepare()", "fromSide": "top", "toSide": "right" },
+    { "id": "loop-hooks", "from": "loop", "to": "hooks", "label": "before / after", "variant": "security", "labelDx": 44 },
+    { "id": "hooks-tracer", "from": "hooks", "to": "tracer", "label": "TraceHook", "variant": "dashed" },
+    { "id": "tracer-evals", "from": "tracer", "to": "evals", "label": "graded" },
+    { "id": "loop-registry", "from": "loop", "to": "registry", "label": "tool calls", "variant": "emphasis", "labelDy": 24 },
+    { "id": "registry-tools", "from": "registry", "to": "tools", "label": "call" },
+    { "id": "registry-mcp", "from": "registry", "to": "mcp", "label": "call_tool" },
+    { "id": "mcp-servers", "from": "mcp", "to": "mcpservers", "label": "JSON-RPC" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Core", "items": ["One Model interface over three providers", "The loop runs until end_turn, a stop check or a budget"] },
+    { "dot": "rose", "title": "Safety", "items": ["Every tool call passes the registry and the hooks", "The trifecta check refuses to build an unsafe agent"] },
+    { "dot": "emerald", "title": "Proof", "items": ["Every run can be traced to JSONL", "Evals turn traces into pass rates and costs"] }
+  ]
+}

@@ -1,0 +1,21 @@
+id: h05-count-and-remember
+difficulty: hard
+toolsets: [files, memory]
+max_steps: 8
+prompt: >-
+  Read servers.txt. Save the number of servers in the eu-west region to memory under the key
+  "eu_west_count", then tell me that number.
+files:
+  servers.txt: |
+    web-1     us-east
+    web-2     eu-west
+    db-1      eu-west
+    cache-1   us-west
+    web-3     eu-west
+    db-2      us-east
+checks:
+  - type: file_contains
+    path: .memory.json
+    text: "eu_west_count"
+  - type: answer_matches
+    pattern: "\\b3\\b"

@@ -1,0 +1,9 @@
+id: e01-write-greeting
+difficulty: easy
+toolsets: [files]
+max_steps: 4
+prompt: "Create a file named hello.txt containing exactly this text: Hello, harness!"
+checks:
+  - type: file_contains
+    path: hello.txt
+    text: "Hello, harness!"

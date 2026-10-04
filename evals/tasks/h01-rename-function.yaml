@@ -1,0 +1,35 @@
+id: h01-rename-function
+difficulty: hard
+toolsets: [files]
+max_steps: 10
+prompt: "Rename the function fetch_data to load_records everywhere in src/util.py and src/app.py (its definition and every call). Don't change anything else."
+files:
+  src/util.py: |
+    def fetch_data(path):
+        with open(path) as f:
+            return f.read().splitlines()
+  src/app.py: |
+    from util import fetch_data
+
+
+    def main():
+        rows = fetch_data("input.txt")
+        print(len(rows), "rows")
+        again = fetch_data("backup.txt")
+        print(len(again), "backup rows")
+checks:
+  - type: file_contains
+    path: src/util.py
+    text: "def load_records(path):"
+  - type: file_contains
+    path: src/app.py
+    text: "from util import load_records"
+  - type: file_contains
+    path: src/app.py
+    text: 'again = load_records("backup.txt")'
+  - type: file_lacks
+    path: src/app.py
+    text: "fetch_data"
+  - type: file_lacks
+    path: src/util.py
+    text: "fetch_data"

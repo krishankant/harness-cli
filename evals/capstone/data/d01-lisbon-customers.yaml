@@ -1,0 +1,18 @@
+id: d01-lisbon-customers
+agent: data
+difficulty: easy
+max_steps: 12
+prompt: "How many customers live in Lisbon? Answer with just the number."
+files:
+  data.sql: |
+    CREATE TABLE customers (id INTEGER PRIMARY KEY, name TEXT NOT NULL, city TEXT NOT NULL);
+    CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, price REAL NOT NULL);
+    CREATE TABLE orders (id INTEGER PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id), order_date TEXT NOT NULL);
+    CREATE TABLE order_items (order_id INTEGER NOT NULL REFERENCES orders(id), product_id INTEGER NOT NULL REFERENCES products(id), quantity INTEGER NOT NULL);
+    INSERT INTO customers VALUES (1,'Ana Souza','Lisbon'),(2,'Ben Carter','Leeds'),(3,'Chloe Martin','Lisbon'),(4,'Dev Patel','Porto'),(5,'Elif Kaya','Lisbon'),(6,'Finn Walsh','Leeds');
+    INSERT INTO products VALUES (1,'Atlas of Rivers','books',24.0),(2,'Pocket Guide to Birds','books',12.5),(3,'Desk Lamp','home',39.0),(4,'Ceramic Mug','home',9.5),(5,'Trail Socks','outdoor',14.0),(6,'Water Bottle','outdoor',18.0);
+    INSERT INTO orders VALUES (1,1,'2026-02-11'),(2,2,'2026-02-20'),(3,1,'2026-03-02'),(4,3,'2026-03-05'),(5,4,'2026-03-14'),(6,5,'2026-03-21'),(7,2,'2026-03-30'),(8,6,'2026-04-02'),(9,3,'2026-04-15'),(10,1,'2026-04-28');
+    INSERT INTO order_items VALUES (1,1,1),(1,4,2),(2,3,1),(3,2,3),(3,6,1),(4,5,2),(5,1,2),(5,3,1),(6,4,4),(7,6,2),(7,2,1),(8,3,2),(9,1,1),(9,5,1),(10,6,3),(10,4,1);
+checks:
+  - type: "answer_matches"
+    pattern: "\\b3\\b"

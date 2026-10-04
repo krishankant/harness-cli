@@ -1,0 +1,29 @@
+id: c03-leap-year
+agent: code
+difficulty: medium
+prompt: "is_leap_year() in dates.py is wrong for some years. Make the tests pass."
+files:
+  dates.py: |
+    def is_leap_year(year):
+        """True for leap years in the Gregorian calendar."""
+        return year % 4 == 0 and year % 100 != 0
+  test_dates.py: |
+    from dates import is_leap_year
+
+
+    def test_ordinary_years():
+        assert is_leap_year(2024) and not is_leap_year(2023)
+
+
+    def test_centuries():
+        assert not is_leap_year(1900)
+        assert is_leap_year(2000)
+checks:
+  # A hidden behaviour check: it runs the code directly, so editing or skipping the tests can't pass it.
+  - type: command_succeeds
+    command: "python -c \"from dates import is_leap_year as f; assert f(2000) and f(1600) and f(2024) and not f(1900) and not f(2100) and not f(2023)\""
+  - type: command_succeeds
+    command: "python -m pytest -q -p no:cacheprovider"
+  - type: file_contains
+    path: test_dates.py
+    text: "assert is_leap_year(2000)"

@@ -1,0 +1,10 @@
+id: e05-recall-memory
+difficulty: easy
+toolsets: [memory]
+max_steps: 4
+prompt: "What is the project codename? Check your memory."
+files:
+  .memory.json: '{"project_codename": "The project codename is BLUE HERON."}'
+checks:
+  - type: answer_contains
+    text: "blue heron"

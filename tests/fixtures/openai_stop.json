@@ -1,0 +1,9 @@
+{
+  "id": "chatcmpl-2",
+  "object": "chat.completion",
+  "model": "example-model",
+  "choices": [
+    {"index": 0, "finish_reason": "stop", "message": {"role": "assistant", "content": "17 + 25 = 42."}}
+  ],
+  "usage": {"prompt_tokens": 120, "completion_tokens": 9, "total_tokens": 129}
+}

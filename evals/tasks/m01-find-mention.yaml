@@ -1,0 +1,14 @@
+id: m01-find-mention
+difficulty: medium
+toolsets: [files]
+max_steps: 8
+prompt: "Which file in notes/ (a.txt, b.txt, c.txt, d.txt or e.txt) mentions invoice 4471? Reply with the file name."
+files:
+  notes/a.txt: "Standup: the deploy moved to Thursday. Invoice 4417 was paid."
+  notes/b.txt: "Lunch order: two salads, one soup."
+  notes/c.txt: "Reminder: renew the TLS certificate before the 30th."
+  notes/d.txt: "Finance asked about invoice 4471; it is still unpaid."
+  notes/e.txt: "Interview feedback is due on Monday."
+checks:
+  - type: answer_matches
+    pattern: "\\bd\\.txt\\b"

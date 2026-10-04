@@ -1,0 +1,12 @@
+id: h03-merge-json
+difficulty: hard
+toolsets: [files]
+max_steps: 8
+prompt: "Merge a.json and b.json into merged.json. When a key is in both, the value from b.json wins."
+files:
+  a.json: '{"name": "harnessy", "version": 1, "debug": false}'
+  b.json: '{"version": 2, "owner": "you"}'
+checks:
+  - type: json_valid
+    path: merged.json
+    equals: {name: harnessy, version: 2, debug: false, owner: you}

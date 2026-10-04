@@ -1,0 +1,349 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --paper: #f5f6f2;
+    --panel: #ffffff;
+    --ink: #1b2230;
+    --muted: #586170;
+    --line: #d9dde3;
+    --cobalt: #1f5f8b;
+    --cobalt-soft: #dbe8f3;
+    --amber: #a65b00;
+    --amber-soft: #f8e6cc;
+    --body: #e6e3dc;
+    --body-edge: #b9b3a7;
+    --organ: #c8514a;
+    --organ-soft: #f3d9d6;
+    --grid: rgba(31, 95, 139, 0.06);
+    --shadow: 0 1px 2px rgba(27, 34, 48, 0.06), 0 8px 24px rgba(27, 34, 48, 0.06);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #11161f;
+      --panel: #19202b;
+      --ink: #e8ebf0;
+      --muted: #9aa5b4;
+      --line: #2c3544;
+      --cobalt: #7db6e0;
+      --cobalt-soft: #1d3346;
+      --amber: #e9a650;
+      --amber-soft: #3a2a15;
+      --body: #2a3140;
+      --body-edge: #4a5466;
+      --organ: #e27a72;
+      --organ-soft: #43262a;
+      --grid: rgba(125, 182, 224, 0.06);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #11161f;
+    --panel: #19202b;
+    --ink: #e8ebf0;
+    --muted: #9aa5b4;
+    --line: #2c3544;
+    --cobalt: #7db6e0;
+    --cobalt-soft: #1d3346;
+    --amber: #e9a650;
+    --amber-soft: #3a2a15;
+    --body: #2a3140;
+    --body-edge: #4a5466;
+    --organ: #e27a72;
+    --organ-soft: #43262a;
+    --grid: rgba(125, 182, 224, 0.06);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background:
+      linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 32px 32px,
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 32px 32px,
+      var(--paper);
+    color: var(--ink);
+    font: 400 16px/1.6 "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    padding-inline: 20px;
+    padding-block: 0 64px;
+  }
+  .wrap { max-width: 1160px; margin: 0 auto; }
+
+  .eyebrow {
+    font: 600 12px/1 "IBM Plex Mono", ui-monospace, monospace;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--cobalt);
+  }
+  h1, h2, h3 { font-family: "Bricolage Grotesque", "Helvetica Neue", sans-serif; text-wrap: balance; margin: 0; }
+
+  header.hero { padding-block: 56px 28px; display: grid; gap: 14px; max-width: 820px; }
+  .hero h1 { font-size: clamp(34px, 5.4vw, 60px); line-height: 1.02; font-weight: 800; letter-spacing: -0.025em; }
+  .hero h1 em { font-style: normal; color: var(--cobalt); }
+  .hero p { margin: 0; font-size: 18px; color: var(--muted); max-width: 64ch; }
+
+  /* ---------- atlas: figure + legend ---------- */
+  .atlas {
+    display: grid;
+    grid-template-columns: minmax(280px, 400px) 1fr;
+    gap: 28px;
+    align-items: start;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    padding: 24px;
+  }
+  .plate { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+  .plate-cap { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .plate-cap span { font: 500 11px/1.3 "IBM Plex Mono", monospace; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+  svg.figure { width: 100%; height: auto; display: block; }
+
+  .fig-body { fill: var(--body); stroke: var(--body-edge); stroke-width: 1.5; }
+  .fig-limb { stroke: var(--body); stroke-linecap: round; fill: none; }
+  .fig-limb-edge { stroke: var(--body-edge); stroke-linecap: round; fill: none; }
+  .fig-skin { stroke: var(--amber); stroke-linecap: round; fill: none; opacity: 0.28; }
+  .organ { fill: var(--organ-soft); stroke: var(--organ); stroke-width: 1.5; transition: fill .2s, stroke-width .2s; }
+  .nerve { stroke: var(--cobalt); fill: none; stroke-width: 2; stroke-linecap: round; opacity: 0.8; }
+  .socket { fill: var(--panel); stroke: var(--cobalt); stroke-width: 2.5; }
+  .prosthetic { stroke: var(--cobalt); stroke-width: 18; stroke-linecap: round; fill: none; stroke-dasharray: 2 6; opacity: 0.9; }
+  .clip { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
+  .clip-line { stroke: var(--muted); stroke-width: 1.5; }
+  .gyri { fill: none; stroke: var(--organ); stroke-width: 1.2; opacity: 0.7; }
+
+  .pin { cursor: pointer; }
+  .pin circle { fill: var(--ink); stroke: var(--panel); stroke-width: 2; transition: r .15s, fill .15s; }
+  .pin text { fill: var(--panel); font: 600 9.5px "IBM Plex Mono", monospace; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+  .pin.safety circle { fill: var(--amber); }
+  .pin.model circle { fill: var(--organ); }
+  .pin:hover circle, .pin.on circle { r: 13; fill: var(--cobalt); }
+  .pin:focus-visible { outline: none; }
+  .pin:focus-visible circle { stroke: var(--cobalt); stroke-width: 3; }
+
+  .legend { display: grid; gap: 4px; }
+  .legend h2 { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 6px; }
+  .legend p.lede { margin: 0 0 12px; color: var(--muted); max-width: 60ch; }
+  .row {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 12px;
+    align-items: center;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    width: 100%;
+  }
+  .row:hover, .row.on { background: var(--cobalt-soft); }
+  .row:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 1px; }
+  .badge {
+    width: 30px; height: 30px; border-radius: 50%;
+    display: grid; place-items: center;
+    background: var(--ink); color: var(--panel);
+    font: 600 11px "IBM Plex Mono", monospace;
+  }
+  .badge.safety { background: var(--amber); }
+  .badge.model { background: var(--organ); }
+  .row .organ-name { font-weight: 600; }
+  .row .part { font: 500 13px/1.35 "IBM Plex Mono", monospace; color: var(--cobalt); }
+  .legend-head {
+    display: grid; grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1.1fr); gap: 12px;
+    padding: 0 10px 6px; border-bottom: 1px solid var(--line); margin-bottom: 4px;
+    font: 600 11px/1 "IBM Plex Mono", monospace; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  }
+
+  /* ---------- organ cards ---------- */
+  section.organs { margin-top: 56px; display: grid; gap: 18px; }
+  section.organs > header { display: grid; gap: 8px; max-width: 760px; margin-bottom: 6px; }
+  section.organs > header h2 { font-size: clamp(26px, 3.4vw, 36px); font-weight: 800; letter-spacing: -0.02em; }
+  section.organs > header p { margin: 0; color: var(--muted); }
+
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  article.card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 22px;
+    display: grid;
+    gap: 12px;
+    align-content: start;
+    scroll-margin-top: 24px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  article.card.on { border-color: var(--cobalt); box-shadow: 0 0 0 3px var(--cobalt-soft); }
+  .card-top { display: flex; gap: 12px; align-items: center; }
+  .card-top h3 { font-size: 21px; font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; }
+  .card-top .part { font: 500 13px/1.3 "IBM Plex Mono", monospace; color: var(--cobalt); margin-top: 3px; }
+  .card p { margin: 0; }
+  .say { font-size: 15.5px; }
+  .facet { display: grid; grid-template-columns: 112px 1fr; gap: 12px; font-size: 14.5px; padding-top: 10px; border-top: 1px dashed var(--line); }
+  .facet b { font: 600 11px/1.5 "IBM Plex Mono", monospace; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+  .facet.also b { color: var(--amber); }
+  .facet.without b { color: var(--organ); }
+  code, .path { font: 500 13px "IBM Plex Mono", monospace; }
+  .path { color: var(--muted); }
+  article.card.wide { grid-column: 1 / -1; }
+
+  /* ---------- breaks ---------- */
+  section.breaks {
+    margin-top: 56px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: 28px;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: 14px;
+    padding: 32px;
+  }
+  section.breaks h2 { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+  section.breaks .eyebrow { color: var(--amber); margin-bottom: 12px; display: block; }
+  section.breaks ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 16px; }
+  section.breaks li { display: grid; grid-template-columns: 170px 1fr; gap: 14px; }
+  section.breaks li b { font-family: "Bricolage Grotesque", sans-serif; font-size: 17px; }
+  section.breaks li span { opacity: 0.85; }
+
+  footer { margin-top: 28px; font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+  footer a { color: var(--cobalt); }
+
+  @media (max-width: 900px) {
+    .atlas { grid-template-columns: 1fr; }
+    .plate { position: static; max-width: 380px; margin: 0 auto; width: 100%; }
+    .grid { grid-template-columns: 1fr; }
+    section.breaks { grid-template-columns: 1fr; padding: 24px; }
+  }
+  @media (max-width: 520px) {
+    .row, .legend-head { grid-template-columns: 30px minmax(0, 1fr); }
+    .row .part, .legend-head span:last-child { grid-column: 2; }
+    .facet { grid-template-columns: 1fr; gap: 4px; }
+    section.breaks li { grid-template-columns: 1fr; gap: 4px; }
+    .atlas { padding: 16px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; scroll-behavior: auto !important; }
+  }
+
+html,body{margin:0;width:1600px;height:1000px;overflow:hidden}
+body{padding:0 !important}
+.card{position:absolute;inset:0;display:grid;grid-template-columns:560px 1fr;gap:40px;padding:56px 64px 0}
+.left{display:grid;grid-template-rows:auto 1fr;gap:10px}
+.left h1{font-size:50px;line-height:1.02;font-weight:800;letter-spacing:-.025em}
+.left h1 em{font-style:normal;color:var(--cobalt)}
+.left svg{width:100%;height:690px}
+.right{padding-top:6px}
+.right p{margin:10px 0 18px;color:var(--muted);font-size:18px;max-width:58ch}
+.hd,.r{display:grid;grid-template-columns:36px 210px 290px 1fr;gap:14px;align-items:center}
+.hd{font:600 12px/1 "IBM Plex Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0 0 10px;border-bottom:1.5px solid var(--line)}
+.r{padding:8.5px 0;border-bottom:1px solid var(--line)}
+.r .b{font-weight:600;font-size:17px}
+.r .h{font:500 15px "IBM Plex Mono",monospace;color:var(--cobalt)}
+.r .a{font-size:16px;color:var(--ink)}
+.foot{position:absolute;left:0;right:0;bottom:0;height:64px;background:var(--ink);color:var(--paper);display:flex;align-items:center;justify-content:space-between;padding:0 64px;font:500 17px "IBM Plex Mono",monospace}
+.foot b{font:700 26px "Bricolage Grotesque",sans-serif;color:#7db6e0}
+</style></head><body>
+<div class="card">
+  <div class="left">
+    <div><span class="eyebrow">harnessy · an anatomy lesson</span><h1 style="margin-top:12px">The model is the brain.<br><em>The harness is the body.</em></h1></div>
+    <svg class="figure" viewBox="0 0 360 640" role="img" aria-labelledby="fig-title">
+        <title id="fig-title">A human figure. Each organ is labeled with the course week of the harness layer it stands for.</title>
+
+        <!-- skin: a soft halo around every part (the sandbox boundary) -->
+        <g class="fig-skin">
+          <circle cx="180" cy="78" r="56" stroke-width="10" fill="none"/>
+          <line x1="118" y1="176" x2="80" y2="340" stroke-width="42"/>
+          <line x1="242" y1="176" x2="262" y2="255" stroke-width="42"/>
+          <line x1="152" y1="360" x2="142" y2="596" stroke-width="46"/>
+          <line x1="208" y1="360" x2="218" y2="596" stroke-width="46"/>
+          <rect x="106" y="142" width="148" height="222" rx="44" fill="none" stroke-width="10"/>
+        </g>
+
+        <!-- limbs -->
+        <g>
+          <line class="fig-limb-edge" x1="118" y1="176" x2="80" y2="340" stroke-width="33"/>
+          <line class="fig-limb" x1="118" y1="176" x2="80" y2="340" stroke-width="30"/>
+          <line class="fig-limb-edge" x1="242" y1="176" x2="262" y2="255" stroke-width="33"/>
+          <line class="fig-limb" x1="242" y1="176" x2="262" y2="255" stroke-width="30"/>
+          <line class="fig-limb-edge" x1="152" y1="360" x2="142" y2="596" stroke-width="37"/>
+          <line class="fig-limb" x1="152" y1="360" x2="142" y2="596" stroke-width="34"/>
+          <line class="fig-limb-edge" x1="208" y1="360" x2="218" y2="596" stroke-width="37"/>
+          <line class="fig-limb" x1="208" y1="360" x2="218" y2="596" stroke-width="34"/>
+          <circle class="fig-body" cx="76" cy="354" r="17"/>
+        </g>
+
+        <!-- prosthetic forearm on a standard socket (MCP) -->
+        <line class="prosthetic" x1="264" y1="262" x2="286" y2="346"/>
+        <circle class="socket" cx="288" cy="356" r="14"/>
+        <circle class="socket" cx="263" cy="258" r="11"/>
+
+        <!-- torso, neck, head -->
+        <rect class="fig-body" x="166" y="120" width="28" height="30" rx="6"/>
+        <rect class="fig-body" x="110" y="146" width="140" height="214" rx="40"/>
+        <circle class="fig-body" cx="180" cy="78" r="50"/>
+
+        <!-- brain: the model -->
+        <ellipse class="organ" data-organ="model" cx="180" cy="66" rx="34" ry="25"/>
+        <path class="gyri" d="M156 62 q8 -12 18 -2 q8 8 16 -4 q8 -8 14 4 M160 76 q10 -8 20 0 q10 6 18 -4"/>
+        <!-- hippocampus: working memory -->
+        <ellipse class="organ" data-organ="memory" cx="164" cy="96" rx="10" ry="6"/>
+
+        <!-- spinal cord + nerves: interface and tracer -->
+        <line class="nerve" data-organ="iface" x1="180" y1="100" x2="180" y2="352"/>
+        <path class="nerve" data-organ="tracer" d="M118 180 L100 258 M100 258 l-10 18 M100 258 l6 22 M88 300 l-6 30"/>
+
+        <!-- heart: the loop -->
+        <path class="organ" data-organ="loop" d="M204 222 c-20 -13 -28 -24 -28 -34 a13 13 0 0 1 28 -7 a13 13 0 0 1 28 7 c0 10 -8 21 -28 34z"/>
+        <!-- stomach: metabolism; liver: specialist organ -->
+        <ellipse class="organ" data-organ="metab" cx="160" cy="276" rx="22" ry="15"/>
+        <ellipse class="organ" data-organ="subagents" cx="214" cy="266" rx="20" ry="13"/>
+
+        <!-- evals: the check-up clipboard -->
+        <g data-organ="evals">
+          <rect class="clip" x="286" y="452" width="50" height="66" rx="5"/>
+          <rect class="clip" x="300" y="446" width="22" height="10" rx="3"/>
+          <line class="clip-line" x1="296" y1="472" x2="326" y2="472"/>
+          <line class="clip-line" x1="296" y1="484" x2="326" y2="484"/>
+          <line class="clip-line" x1="296" y1="496" x2="316" y2="496"/>
+          <path d="M296 506 l5 5 l9 -11" stroke="var(--cobalt)" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+        </g>
+
+        <!-- pins -->
+        <g class="pin model" data-id="model" tabindex="0" role="button" aria-label="Brain: the model"><circle cx="212" cy="40" r="11"/><text x="212" y="40">M</text></g>
+        <g class="pin" data-id="iface" tabindex="0" role="button" aria-label="Spinal cord: the model interface, week 1"><circle cx="180" cy="134" r="11"/><text x="180" y="134">1</text></g>
+        <g class="pin" data-id="loop" tabindex="0" role="button" aria-label="Heart: the agent loop, week 2"><circle cx="226" cy="186" r="11"/><text x="226" y="186">2</text></g>
+        <g class="pin" data-id="tools" tabindex="0" role="button" aria-label="Hands: tools, week 3"><circle cx="54" cy="372" r="11"/><text x="54" y="372">3</text></g>
+        <g class="pin" data-id="memory" tabindex="0" role="button" aria-label="Memory: context and memory, week 4"><circle cx="140" cy="104" r="11"/><text x="140" y="104">4</text></g>
+        <g class="pin" data-id="tracer" tabindex="0" role="button" aria-label="Nerves: the tracer, week 5"><circle cx="74" cy="254" r="11"/><text x="74" y="254">5a</text></g>
+        <g class="pin" data-id="evals" tabindex="0" role="button" aria-label="Check-up: evals, week 5"><circle cx="336" cy="446" r="11"/><text x="336" y="446">5b</text></g>
+        <g class="pin" data-id="hooks" tabindex="0" role="button" aria-label="Reflexes: hooks and approvals, week 6"><circle cx="147" cy="478" r="11"/><text x="147" y="478">6a</text></g>
+        <g class="pin" data-id="subagents" tabindex="0" role="button" aria-label="Specialist organs: subagents, week 6"><circle cx="240" cy="284" r="11"/><text x="240" y="284">6b</text></g>
+        <g class="pin" data-id="metab" tabindex="0" role="button" aria-label="Metabolism: retries, streaming and cost, week 7"><circle cx="132" cy="300" r="11"/><text x="132" y="300">7a</text></g>
+        <g class="pin safety" data-id="immune" tabindex="0" role="button" aria-label="Skin and immune system: sandbox and trifecta check, week 7"><circle cx="96" cy="160" r="11"/><text x="96" y="160">7b</text></g>
+        <g class="pin" data-id="capstone" tabindex="0" role="button" aria-label="Trained muscles: the capstone agents, week 8"><circle cx="214" cy="440" r="11"/><text x="214" y="440">8</text></g>
+        <g class="pin" data-id="mcp" tabindex="0" role="button" aria-label="Prosthetic socket: MCP, week 9"><circle cx="304" cy="306" r="11"/><text x="304" y="306">9</text></g>
+      </svg>
+  </div>
+  <div class="right">
+    <p>Each layer of the course gives the model one ability a body has. Numbers are course weeks; the third column is a second way to picture it.</p>
+    <div class="hd"><span></span><span>Body</span><span>Harness</span><span>Also like</span></div>
+    <div class="r"><span class="badge model">M</span><span class="b">Brain</span><span class="h">the model</span><span class="a">A consultant on a phone call</span></div>
+<div class="r"><span class="badge ">1</span><span class="b">Spinal cord</span><span class="h">Model interface</span><span class="a">A travel power adapter</span></div>
+<div class="r"><span class="badge ">2</span><span class="b">Heartbeat</span><span class="h">Agent loop</span><span class="a">A cook tasting the soup</span></div>
+<div class="r"><span class="badge ">3</span><span class="b">Hands</span><span class="h">Tools + registry</span><span class="a">A surgeon and the nurse who checks</span></div>
+<div class="r"><span class="badge ">4</span><span class="b">Working memory</span><span class="h">Context + memory</span><span class="a">A whiteboard and a notebook</span></div>
+<div class="r"><span class="badge ">5a</span><span class="b">Nerves that report</span><span class="h">Tracer</span><span class="a">A plane's black box</span></div>
+<div class="r"><span class="badge ">5b</span><span class="b">The check-up</span><span class="h">Evals</span><span class="a">A driving test on a fixed route</span></div>
+<div class="r"><span class="badge ">6a</span><span class="b">Reflexes, conscience</span><span class="h">Hooks, approvals, StopCheck</span><span class="a">A new hire's spending limit</span></div>
+<div class="r"><span class="badge ">6b</span><span class="b">Specialist organs</span><span class="h">Subagents</span><span class="a">Hiring an electrician</span></div>
+<div class="r"><span class="badge ">7a</span><span class="b">Metabolism</span><span class="h">Retries, streaming, cost</span><span class="a">A phone battery</span></div>
+<div class="r"><span class="badge safety">7b</span><span class="b">Skin, immune system</span><span class="h">Sandbox + trifecta check</span><span class="a">A teller ignoring a note in the deposit</span></div>
+<div class="r"><span class="badge ">8</span><span class="b">Trained muscles</span><span class="h">Research, code, data agents</span><span class="a">One kitchen, three menus</span></div>
+<div class="r"><span class="badge ">9</span><span class="b">Prosthetic socket</span><span class="h">MCP client</span><span class="a">USB-C, and the stick you found</span></div>
+  </div>
+</div>
+<div class="foot"><span>build every organ yourself · ~5 hours a week · Claude · OpenAI · Ollama</span><b>github.com/krishankant/harnessy</b></div>
+</body></html>

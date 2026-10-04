@@ -1,0 +1,14 @@
+id: e04-config-value
+difficulty: easy
+toolsets: [files]
+max_steps: 4
+prompt: "Which port is configured in config.ini?"
+files:
+  config.ini: |
+    [server]
+    host = 0.0.0.0
+    port = 8472
+    workers = 4
+checks:
+  - type: answer_contains
+    text: "8472"

@@ -1,0 +1,19 @@
+{
+  "id": "chatcmpl-1",
+  "object": "chat.completion",
+  "model": "example-model",
+  "choices": [
+    {
+      "index": 0,
+      "finish_reason": "tool_calls",
+      "message": {
+        "role": "assistant",
+        "tool_calls": [
+          {"id": "call_1", "type": "function", "function": {"name": "add", "arguments": "{\"a\": 17, \"b\": 25}"}},
+          {"id": "call_2", "type": "function", "function": {"name": "get_time", "arguments": "{}"}}
+        ]
+      }
+    }
+  ],
+  "usage": {"prompt_tokens": 80, "completion_tokens": 30, "total_tokens": 110}
+}

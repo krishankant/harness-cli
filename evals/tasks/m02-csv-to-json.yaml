@@ -1,0 +1,20 @@
+id: m02-csv-to-json
+difficulty: medium
+toolsets: [files]
+max_steps: 6
+prompt: >-
+  Convert people.csv into people.json: a JSON list of objects with the keys "name" (a string)
+  and "age" (an integer), in the same order as the CSV.
+files:
+  people.csv: |
+    name,age
+    Ada,36
+    Linus,54
+    Grace,85
+checks:
+  - type: json_valid
+    path: people.json
+    equals:
+      - {name: Ada, age: 36}
+      - {name: Linus, age: 54}
+      - {name: Grace, age: 85}

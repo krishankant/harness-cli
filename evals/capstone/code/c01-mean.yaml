@@ -1,0 +1,28 @@
+id: c01-mean
+agent: code
+difficulty: easy
+prompt: "The tests in this project fail. Fix the bug in stats.py so they pass."
+files:
+  stats.py: |
+    def mean(values):
+        """The arithmetic mean of a non-empty list of numbers."""
+        return sum(values) / (len(values) - 1)
+  test_stats.py: |
+    from stats import mean
+
+
+    def test_mean_of_three():
+        assert mean([2, 4, 6]) == 4
+
+
+    def test_mean_of_one():
+        assert mean([5]) == 5
+checks:
+  # A hidden behaviour check: it runs the code directly, so editing or skipping the tests can't pass it.
+  - type: command_succeeds
+    command: "python -c \"from stats import mean; assert mean([2, 4, 6]) == 4 and mean([5]) == 5 and mean([1, 2]) == 1.5\""
+  - type: command_succeeds
+    command: "python -m pytest -q -p no:cacheprovider"
+  - type: file_contains
+    path: test_stats.py
+    text: "assert mean([2, 4, 6]) == 4"

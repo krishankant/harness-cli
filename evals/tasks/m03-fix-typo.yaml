@@ -1,0 +1,26 @@
+id: m03-fix-typo
+difficulty: medium
+toolsets: [files]
+max_steps: 6
+prompt: "README.md misspells 'Installation' as 'Instalation'. Fix every occurrence and change nothing else."
+files:
+  README.md: |
+    # Tiny Tool
+
+    ## Instalation
+
+    Run `pip install tiny-tool`. See the Instalation notes below for Windows.
+
+    ## Usage
+
+    Run `tiny-tool --help`.
+checks:
+  - type: file_lacks
+    path: README.md
+    text: "Instalation"
+  - type: file_contains
+    path: README.md
+    text: "See the Installation notes below for Windows."
+  - type: file_contains
+    path: README.md
+    text: "Run `tiny-tool --help`."

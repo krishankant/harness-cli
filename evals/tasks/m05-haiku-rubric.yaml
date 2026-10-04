@@ -1,0 +1,17 @@
+id: m05-haiku-rubric
+difficulty: medium
+toolsets: [files]
+max_steps: 6
+prompt: "Read article.txt, then write a haiku (three lines, roughly 5-7-5 syllables) about its subject and save it to haiku.txt."
+files:
+  article.txt: |
+    Honeybees communicate through a "waggle dance". A forager returning to the hive
+    moves in a figure-eight, and the angle of the straight run tells the other bees
+    the direction of the flowers relative to the sun. The length of the run tells
+    them how far away the flowers are.
+checks:
+  - type: file_exists
+    path: haiku.txt
+  - type: rubric
+    path: haiku.txt
+    criteria: "Exactly three lines, roughly 5-7-5 syllables, and clearly about bees or their dance."

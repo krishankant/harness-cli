@@ -1,0 +1,16 @@
+id: m04-sum-column
+difficulty: medium
+toolsets: [files]
+max_steps: 4
+prompt: "What is the total of the amount column in sales.csv? Answer with just the number."
+files:
+  sales.csv: |
+    region,amount
+    north,120
+    south,75
+    east,310
+    west,45
+    central,250
+checks:
+  - type: answer_matches
+    pattern: "\\b800\\b"
