@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING, Callable
 from harness_cli import session as sessions
 from harness_cli.config import MODES, harness_home
 from harness_cli.instructions import instruction_sources
+from harness_cli.models import ModelSpec, Registry, key_status
 from harness_cli.sandbox import describe, run_sandboxed
 from harnessy.context import SUMMARY_PROMPT, render_transcript
-from harnessy.cost import PRICES, price_for
 from harnessy.tools.files import resolve_inside
 from harnessy.types import Message
 
@@ -152,7 +152,7 @@ def _status(app: App, args: str) -> None:
     files = ", ".join(str(p) for p in instruction_sources(app.workspace)) or "none"
     for label, value in [
         ("workspace", app.workspace),
-        ("model", f"{app.model.name} ({s.provider})"),
+        ("model", f"{app.spec.label()} · {app.spec.provider} · {app.spec.endpoint}"),
         ("mode", app.permissions.mode),
         ("sandbox", describe(s.sandbox)),
         ("session", app.session.id),
@@ -166,24 +166,41 @@ def _status(app: App, args: str) -> None:
 @command("cost", "Tokens and cost of this conversation")
 def _cost(app: App, args: str) -> None:
     u = app.engine.usage
-    price = price_for(app.model.name, PRICES)
-    money = f"${app.engine.cost_usd:.4f}" if price else "unknown (no price for this model in harnessy/cost.py)"
+    money = f"${app.engine.cost_usd:.4f}" if app.engine.priced() else "unknown (no price for this model: add \"price\" to its entry in settings)"
     app.renderer.note(f"  tokens in {u.input_tokens:,} · out {u.output_tokens:,} · cost {money}")
     if app.settings.max_cost_usd is not None:
         app.renderer.note(f"  budget ${app.settings.max_cost_usd:.2f}")
 
 
-@command("model", "Show or switch the model: /model <name>")
+@command("model", "Show or switch the model (any provider): /model <alias | provider:model | id>")
 def _model(app: App, args: str) -> None:
     if not args:
-        app.renderer.note(f"  {app.model.name} ({app.settings.provider})")
+        spec = app.spec
+        app.renderer.note(f"  {spec.label()} · {spec.provider} · {spec.endpoint} · {key_status(spec)}")
         return
     try:
         app.set_model(args)
     except Exception as e:
         app.renderer.error(f"Could not switch model: {e}")
         return
-    app.renderer.info(f"Model is now {app.model.name}.")
+    app.renderer.info(f"Model is now {app.spec.label()} ({app.spec.provider}). The conversation carries over.")
+
+
+def model_table(registry: Registry, current: ModelSpec | None = None) -> list[str]:
+    """One line per registry entry: name, provider, model id, endpoint, price, key."""
+    rows = []
+    for alias, spec in sorted(registry.models.items(), key=lambda kv: (kv[1].source != "settings", kv[1].provider, kv[0])):
+        price = f"${spec.price.input_per_mtok:g}/${spec.price.output_per_mtok:g}" if spec.price else "-"
+        mark = "*" if current is not None and spec == current else " "
+        rows.append(f" {mark}{alias:<18} {spec.provider:<10} {spec.model:<24} {price:<11} {spec.endpoint:<28} {key_status(spec)}")
+    return [f"  {'name':<18} {'provider':<10} {'model':<24} {'$/Mtok':<11} {'endpoint':<28} key", *rows]
+
+
+@command("models", "List the models you can switch to")
+def _models(app: App, args: str) -> None:
+    for line in model_table(app.registry, app.spec):
+        app.renderer.note(line)
+    app.renderer.info("  Add your own under \"models\" in ~/.harness/settings.json; see docs/cli/usage.md#models.")
 
 
 @command("mode", f"Show or switch the permission mode: {', '.join(MODES)}")

@@ -110,5 +110,53 @@ def test_resume_without_id_lists(workspace):
 
 
 def test_max_cost_warns_for_unpriced_model(workspace):
-    code, _, err, _ = run(workspace, ["-p", "x", "--max-cost", "1"], [text_reply("ok")])
+    code, _, err, _ = run(workspace, ["-p", "x", "--max-cost", "1", "-m", "ollama:mystery"], [text_reply("ok")])
     assert code == 0 and "can't be enforced" in err
+
+
+def settings_file(workspace, data):
+    (workspace / ".harness").mkdir(exist_ok=True)
+    (workspace / ".harness" / "settings.json").write_text(json.dumps(data))
+
+
+def test_list_models(workspace):
+    settings_file(workspace, {"models": {"groq": {"provider": "openai", "model": "llama-4", "baseUrl": "https://api.groq.com/openai/v1", "apiKeyEnv": "GROQ_KEY_FOR_TEST"}}})
+    code, out, _, _ = run(workspace, ["--list-models"], [])
+    assert code == 0
+    groq = next(line for line in out.splitlines() if "groq" in line)
+    assert "llama-4" in groq and "api.groq.com" in groq and "GROQ_KEY_FOR_TEST not set" in groq
+    assert "claude-opus-5" in out and "gpt-5.5" in out
+
+
+def test_settings_model_and_price_used(workspace):
+    settings_file(workspace, {"defaultModel": "cheap", "models": {"cheap": {"provider": "openai", "model": "tiny-1", "price": [1, 2]}}})
+    code, out, _, model = run(workspace, ["-p", "x", "--output-format", "json"], [text_reply("ok", 1_000_000, 1_000_000)])
+    data = json.loads(out)
+    assert model.name == "tiny-1" and data["cost_usd"] == 3.0
+
+
+def test_cli_model_flag_and_errors(workspace):
+    code, out, _, model = run(workspace, ["-p", "x", "-m", "openai:gpt-5.5"], [text_reply("ok")])
+    assert code == 0 and model.name == "gpt-5.5"
+    code, _, err, _ = run(workspace, ["-p", "x", "-m", "nope"], [])
+    assert code == 2 and "Unknown model 'nope'" in err
+    settings_file(workspace, {"models": {"bad": {"provider": "openai"}}})
+    code, _, err, _ = run(workspace, ["-p", "x"], [])
+    assert code == 2 and "models.'bad'" in err
+
+
+def test_missing_key_exits_2(workspace, monkeypatch):
+    from harness_cli.main import main
+
+    monkeypatch.delenv("NO_SUCH_KEY_VAR", raising=False)
+    settings_file(workspace, {"models": {"g": {"provider": "openai", "model": "m-1", "apiKeyEnv": "NO_SUCH_KEY_VAR"}}})
+    out, err = io.StringIO(), io.StringIO()
+    code = main(["-C", str(workspace), "-p", "x", "-m", "g"], stdin=FakeStdin(tty=True), stdout=out, stderr=err)
+    assert code == 2 and "NO_SUCH_KEY_VAR" in err.getvalue()
+
+
+def test_continue_with_another_model_records_it(workspace):
+    run(workspace, ["-p", "hello"], [text_reply("hi")])
+    run(workspace, ["-p", "-c", "-m", "gpt-5.5", "again"], [text_reply("hi again")])
+    s = sessions.latest(workspace)
+    assert (s.provider, s.model) == ("openai", "gpt-5.5") and len(s.messages) == 4

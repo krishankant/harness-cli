@@ -14,7 +14,7 @@ from typing import Any, Iterable, Iterator
 
 from harness_cli.permissions import PermissionHook
 from harnessy.context import ContextManager
-from harnessy.cost import PRICES, price_for
+from harnessy.cost import PRICES, Price, price_for
 from harnessy.hooks import Block, Hook
 from harnessy.loop import Agent
 from harnessy.models.base import Model
@@ -82,6 +82,7 @@ class Engine:
         max_cost_usd: float | None = None,
         context_budget_tokens: int = 120_000,
         permissions: PermissionHook | None = None,
+        prices: dict[str, Price] | None = None,
     ):
         self.model = model
         self.tools = list(tools)
@@ -90,6 +91,7 @@ class Engine:
         if interactive:
             self.permissions.ask_human = self._ask
         self.extra_hooks = list(hooks)
+        self.prices = dict(prices if prices is not None else PRICES)
         self.max_steps = max_steps
         self.max_cost_usd = max_cost_usd
         self.context = ContextManager(budget_tokens=context_budget_tokens, keep_last_results=KEEP_LAST_RESULTS)
@@ -101,7 +103,7 @@ class Engine:
     # --- what the REPL changes between turns ---
 
     def priced(self) -> bool:
-        return price_for(self.model.name, PRICES) is not None
+        return price_for(self.model.name, self.prices) is not None
 
     def reset_context(self) -> None:
         self.context = ContextManager(budget_tokens=self.context.budget_tokens, keep_last_results=KEEP_LAST_RESULTS)
@@ -123,6 +125,7 @@ class Engine:
             context=self.context,
             hooks=[self._cancel, self.permissions, *self.extra_hooks, _Emit(self)],
             max_cost_usd=self._remaining_budget(),
+            prices=self.prices,
         )
 
         def work() -> None:

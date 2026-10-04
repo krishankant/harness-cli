@@ -15,9 +15,10 @@ from harness_cli.session import Session
 from harness_cli.tools import SessionTodo, build_tools, start_mcp
 from harnessy.loop import RunResult
 from harnessy.models.base import Model
+from harness_cli.models import ModelSpec, Registry, build_model
 from harnessy.types import Message
 
-ModelFactory = Callable[[str, "str | None"], Model]
+ModelFactory = Callable[[ModelSpec], Model]
 
 
 class App:
@@ -25,21 +26,25 @@ class App:
         self,
         workspace: Path,
         settings: Settings,
-        model_factory: ModelFactory,
         renderer: Renderer,
+        model_factory: ModelFactory = build_model,
         interactive: bool = True,
         session: Session | None = None,
+        registry: Registry | None = None,
     ):
         self.workspace = Path(workspace).resolve()
         self.settings = settings
         self.model_factory = model_factory
         self.renderer = renderer
         self.interactive = interactive
-        self.model = model_factory(settings.provider, settings.model)
+        self.registry = registry or Registry.from_settings(settings)
+        self.spec = self.registry.resolve(settings.model)
+        self.model = model_factory(self.spec)
         self.todo = SessionTodo()
         self.permissions = PermissionHook(settings.permission_mode, [], settings.allow, settings.deny)
         self.mcp_tools, self.mcp_clients, self.mcp_errors = start_mcp(settings.mcp_servers, self.workspace)
-        self.session = session or Session.new(self.workspace, settings.provider, self.model.name)
+        self.session = session or Session.new(self.workspace, self.spec.provider, self.spec.model)
+        self.session.provider, self.session.model = self.spec.provider, self.spec.model  # a resumed one may switch
         self.engine: Engine
         self.build()
         if settings.max_cost_usd is not None and not self.engine.priced():
@@ -62,6 +67,7 @@ class App:
             max_cost_usd=self.settings.max_cost_usd,
             context_budget_tokens=self.settings.context_budget_tokens,
             permissions=self.permissions,
+            prices=self.registry.prices(),
         )
         if old is not None:
             self.engine.usage, self.engine.cost_usd = old.usage, old.cost_usd
@@ -73,12 +79,16 @@ class App:
         return self.engine.tools
 
     def set_model(self, name: str) -> None:
-        self.model = self.model_factory(self.settings.provider, name)
-        self.session.model = self.model.name
+        """Switch to another model, of any provider; the conversation carries over. On an error
+        (unknown name, missing key) nothing changes."""
+        spec = self.registry.resolve(name)
+        model = self.model_factory(spec)
+        self.spec, self.model = spec, model
+        self.session.provider, self.session.model = spec.provider, spec.model
         self.build()
 
     def new_session(self) -> None:
-        self.session = Session.new(self.workspace, self.settings.provider, self.model.name)
+        self.session = Session.new(self.workspace, self.spec.provider, self.spec.model)
         self.todo.reset()
         self.engine.reset_context()
         self.engine.usage, self.engine.cost_usd = self.session.usage, self.session.cost_usd

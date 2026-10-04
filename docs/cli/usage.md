@@ -5,6 +5,7 @@ on the harnessy library in this repo: the loop, tools, hooks, approvals, streami
 management and sandbox you built in the course.
 
 - [Setup](#setup)
+- [Models](#models)
 - [Interactive mode](#interactive-mode)
 - [Headless mode (`-p`)](#headless-mode--p)
 - [Flags](#flags)
@@ -42,11 +43,78 @@ EOF
 A project's own `.env` is never read: it belongs to the project, and an empty
 `ANTHROPIC_API_KEY=` line in it would override a working login.
 
-| Provider | Flag | Needs |
+With `ANTHROPIC_API_KEY` set, `harness` starts on `claude-opus-5`; with `OPENAI_API_KEY` set,
+`harness -m gpt-5.5` uses OpenAI. To add more models, other endpoints or prices, see
+[Models](#models).
+
+## Models
+
+harness speaks three APIs: **Anthropic** (Messages API), **OpenAI** (Chat Completions; this
+also covers every OpenAI-compatible server: OpenRouter, Groq, Together, vLLM, LM Studio, ...)
+and **Ollama** (local, on `http://localhost:11434/v1`). You can use any model behind them,
+switch between them in the middle of a conversation, and give each one a short name.
+
+### Picking a model
+
+`-m` / `--model` at startup, and `/model` in a chat, take any of:
+
+| You write | Means |
+| --- | --- |
+| an alias: `opus`, `fable`, `gpt`, or one of yours | that entry in the registry |
+| `provider:model`: `openai:gpt-5.5`, `ollama:qwen3-coder`, `anthropic:claude-opus-5` | that model through that provider, no config needed |
+| a model id: `claude-fable-5-1`, `gpt-5.5`, `o4-mini` | provider guessed from the name (`claude-*` → Anthropic; `gpt-*`, `o1`…`o9*`, `codex-*` → OpenAI; anything else → `--provider`, default Anthropic) |
+
+With no `-m`, harness uses `model` / `defaultModel` from settings, else `ANTHROPIC_MODEL`
+(or `OPENAI_MODEL` / `OLLAMA_MODEL` when `provider` is `openai` / `ollama`), else
+`claude-opus-5`.
+
+```bash
+harness -m gpt-5.5                     # OpenAI
+harness -m opus                        # Anthropic, by alias
+harness -m ollama:qwen3-coder          # local
+harness --list-models                  # everything you can pick, with prices and key status
+```
+
+In a chat, `/model gpt` switches to OpenAI and keeps the conversation (tool calls included);
+`/model opus` switches back. `/models` shows the list; `/model` alone shows the current model,
+its endpoint and whether its key is set. If a switch fails (unknown name, missing key), you
+stay on the current model.
+
+### Adding models
+
+Add entries under `models` in `~/.harness/settings.json` (all projects) or
+`.harness/settings.json` (this project; its entries win on a name clash):
+
+```json
+{
+  "defaultModel": "opus",
+  "models": {
+    "opus":     { "provider": "anthropic", "model": "claude-opus-5", "maxTokens": 32000 },
+    "gpt":      { "provider": "openai", "model": "gpt-5.5" },
+    "mini":     { "provider": "openai", "model": "gpt-5.5-mini", "price": { "input": 0.5, "output": 2 } },
+    "groq":     { "provider": "openai", "model": "llama-4-70b",
+                  "baseUrl": "https://api.groq.com/openai/v1", "apiKeyEnv": "GROQ_API_KEY",
+                  "price": [0.6, 0.8] },
+    "router":   { "provider": "openai", "model": "anthropic/claude-opus-5",
+                  "baseUrl": "https://openrouter.ai/api/v1", "apiKeyEnv": "OPENROUTER_API_KEY" },
+    "local":    { "provider": "ollama", "model": "qwen3-coder" },
+    "lmstudio": { "provider": "openai", "model": "qwen3-coder-30b",
+                  "baseUrl": "http://localhost:1234/v1", "apiKeyEnv": "LMSTUDIO_KEY" }
+  }
+}
+```
+
+| Field | Required | Meaning |
 | --- | --- | --- |
-| Anthropic (default) | `--provider anthropic` | `ANTHROPIC_API_KEY` (or `ant auth login`); model from `-m`, `ANTHROPIC_MODEL`, else `claude-opus-5` |
-| OpenAI | `--provider openai` | `OPENAI_API_KEY`, and a model from `-m` or `OPENAI_MODEL` |
-| Ollama (local) | `--provider ollama` | Ollama running; a tool-calling model from `-m` or `OLLAMA_MODEL` (`OLLAMA_BASE_URL` to change the URL) |
+| `model` | yes | the id the API expects |
+| `provider` | no | `anthropic`, `openai` or `ollama`; guessed from `model` when left out |
+| `baseUrl` | no | another endpoint for that API (proxies, gateways, OpenAI-compatible servers) |
+| `apiKeyEnv` | no | the environment variable with the key (default `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`; Ollama needs none). Put the key itself in your environment or `~/.harness/.env`, never in settings |
+| `price` | no | USD per million tokens, `{"input": x, "output": y}` or `[x, y]`; makes `/cost` and `--max-cost` work. Built-in prices (`harnessy/cost.py`) cover `claude-opus-5`, `claude-fable-5-1` and `gpt-5.5`, including dated ids |
+| `maxTokens` | no | output-token limit per reply (Anthropic; default 16000) |
+
+The model must support tool calling, or it can only chat. A bad entry stops harness with its
+name and the problem (exit code 2).
 
 ## Interactive mode
 
@@ -121,8 +189,9 @@ settings or session id. Failed tool calls are also echoed to stderr.
 | `-c`, `--continue` | continue the most recent conversation in this folder |
 | `-r ID`, `--resume ID` | resume a conversation (the whole id, its start, or its last 4 characters); `-r` alone lists them |
 | `-C DIR`, `--cd DIR` | workspace folder (default: current folder) |
-| `--provider anthropic\|openai\|ollama` | model provider |
-| `-m NAME`, `--model NAME` | model name |
+| `-m NAME`, `--model NAME` | an alias, `provider:model`, or a model id; see [Models](#models) |
+| `--provider anthropic\|openai\|ollama` | provider for a bare model id that doesn't name one, and for the default model |
+| `--list-models` | list the models you can pick, then exit |
 | `--permission-mode default\|accept-edits\|plan\|bypass` | see [Permissions](#permissions) |
 | `--dangerously-skip-permissions` | same as `--permission-mode bypass` |
 | `--allowed-tools RULES` | comma-separated rules that run without asking; repeatable |
@@ -144,7 +213,8 @@ settings or session id. Failed tool calls are also echoed to stderr.
 | `/clear` | start a new conversation (the old one stays saved) |
 | `/compact [focus]` | replace the conversation with a model-written summary, to free context |
 | `/cost` | tokens and dollars so far in this conversation |
-| `/model [name]` | show or switch the model (same provider) |
+| `/model [name]` | show or switch the model, any provider; the conversation carries over |
+| `/models` | the models you can switch to, with provider, price and key status |
 | `/mode [mode]` | show or switch the permission mode |
 | `/tools` | every tool and whether it runs, asks or is denied right now |
 | `/todo` | the agent's todo list |
@@ -270,7 +340,8 @@ combined rather than replaced. `HARNESS_HOME` moves `~/.harness`.
 ```json
 {
   "provider": "anthropic",
-  "model": "claude-opus-5",
+  "defaultModel": "opus",
+  "models": { "opus": { "model": "claude-opus-5" } },
   "permissions": { "defaultMode": "default", "allow": [], "deny": [] },
   "sandbox": "workspace-write",
   "maxSteps": 50,
@@ -285,8 +356,9 @@ combined rather than replaced. `HARNESS_HOME` moves `~/.harness`.
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `provider` | `anthropic` | `anthropic`, `openai` or `ollama` |
-| `model` | provider default | model name |
+| `provider` | `anthropic` | provider for bare model ids and for the default model |
+| `defaultModel` (or `model`) | see [Models](#models) | the model to start with |
+| `models` | built-ins | the model registry; user and project entries are merged by name |
 | `permissions.defaultMode` | `default` | starting permission mode |
 | `permissions.allow` / `deny` | `[]` | rules, see [Permissions](#permissions) |
 | `sandbox` | `workspace-write` | or `off` |
@@ -331,5 +403,8 @@ harness -p "run ruff check . and fix every error" \
   --permission-mode accept-edits --allowed-tools "run_shell(ruff *)" --max-cost 1
 
 # Local and free
-harness --provider ollama -m qwen3-coder
+harness -m ollama:qwen3-coder
+
+# Plan with one model, implement with another
+harness -m fable "plan the refactor of src/db; don't edit yet"   # then in the chat: /model gpt
 ```

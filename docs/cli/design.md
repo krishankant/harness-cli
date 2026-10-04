@@ -38,7 +38,7 @@ flowchart LR
     E -->|events| R
     E -->|events| H
     E --> A[harnessy Agent<br/>loop, registry, hooks]
-    A --> P[providers.py<br/>Anthropic / OpenAI / Ollama + retry]
+    A --> P[models.py<br/>registry: any Anthropic / OpenAI-compatible / Ollama model + retry]
     A --> T[tools.py<br/>files, search, shell, todo, subagent, MCP]
     A --> G[permissions.py<br/>ApprovalHook + rules]
     T --> S[sandbox.py<br/>run_command + Seatbelt]
@@ -53,7 +53,7 @@ Each file has one job and can be tested without the others.
 | Unit | Does | Depends on |
 | --- | --- | --- |
 | `config.py` | `Settings`: defaults ← `~/.harness/settings.json` ← `<project>/.harness/settings.json` ← flags | stdlib |
-| `providers.py` | `make_model(provider, model)` → harnessy model wrapped in `RetryingModel` | harnessy.models |
+| `models.py` | Model registry: `ModelSpec`, `Registry.resolve(name)` (alias, `provider:model` or id), `build_model(spec)` → harnessy model with its endpoint and key, wrapped in `RetryingModel` | harnessy.models, harnessy.cost |
 | `instructions.py` | Builds the system prompt: base prompt + environment + `HARNESS.md`/`AGENTS.md`/`CLAUDE.md` | stdlib |
 | `sandbox.py` | Seatbelt profile and `run_sandboxed(command, workspace, mode)` | harnessy.tools.sandbox |
 | `tools.py` | `build_tools(...)`: read/write/edit/list/search files, `run_shell`, `todo`, `spawn_subagent`, MCP tools | harnessy.tools, todo, subagents, mcp |
@@ -247,3 +247,16 @@ Found while building and testing; the sections above already describe the result
 | (not in draft) | Keep the last 12 tool results in full, not harnessy's 3 | In a live run the model lost pytest output two steps after reading it |
 | `--allowed-tools a b c` | `--allowed-tools "a,b"`, repeatable | A space-separated list swallowed the prompt argument |
 | (not in draft) | A warning when `--max-cost` can't be enforced | A model missing from the price table would ignore the budget silently |
+
+## v0.2: generic models
+
+A model registry replaced the single `--provider` + model name. `harness_cli/models.py` turns
+what you type (`opus`, `openai:gpt-5.5`, `claude-fable-5-1`) into a `ModelSpec` (provider,
+model id, endpoint, key variable, price, output limit), from built-in entries for the priced
+models in `harnessy/cost.py` plus the `models` table in settings (user and project files merged
+by name). `App.set_model` rebuilds the engine around another spec and keeps the conversation:
+harnessy's messages are provider-neutral, and each adapter rebuilds what it needs (the
+Anthropic adapter replays its own raw blocks only for its own turns). Prices from the registry
+go to the engine, so `/cost` and `--max-cost` work for any model with a `price`. Tested with
+fake models, a history-translation test, and a live Anthropic → OpenAI → Anthropic
+conversation that carried a tool call across.

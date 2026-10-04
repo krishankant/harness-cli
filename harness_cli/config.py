@@ -27,7 +27,11 @@ _KEYS = {
     "systemPrompt": "system_prompt",
     "appendSystemPrompt": "append_system_prompt",
     "mcpServers": "mcp_servers",
+    "defaultModel": "default_model",
+    "models": "models",
 }
+# Keyed tables: a later layer adds or replaces entries instead of replacing the whole table.
+_TABLES = ("mcp_servers", "models")
 
 
 class ConfigError(ValueError):
@@ -37,7 +41,9 @@ class ConfigError(ValueError):
 @dataclass(frozen=True)
 class Settings:
     provider: str = "anthropic"
-    model: str | None = None
+    model: str | None = None  # what to start with: an alias, provider:model, or a model id
+    default_model: str | None = None  # "defaultModel" in settings.json; same meaning, lower priority than model
+    models: dict[str, Any] = field(default_factory=dict)  # the model registry (harness_cli/models.py)
     permission_mode: str = "default"
     allow: tuple[str, ...] = ()
     deny: tuple[str, ...] = ()
@@ -92,6 +98,10 @@ def _merge(settings: Settings, layer: dict[str, Any]) -> Settings:
             continue
         if name in ("allow", "deny"):
             value = (*getattr(settings, name), *value)
+        elif name in _TABLES:
+            if not isinstance(value, dict):
+                raise ConfigError(f"'{name}' must be a JSON object")
+            value = {**getattr(settings, name), **value}
         changes[name] = value
     return replace(settings, **changes)
 

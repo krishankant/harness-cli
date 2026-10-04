@@ -91,10 +91,18 @@ def test_compact_replaces_history(workspace):
     assert sent[0].endswith("Summary: user asked X.") and sent[-1] == "next" and len(sent) == 3
 
 
-def test_model_switch(workspace):
-    app, model, out, feeder = make_app(workspace, [], lines=["/model other-model", "/model"])
+def test_model_switch_across_providers_keeps_history(workspace):
+    app, model, out, feeder = make_app(
+        workspace, [text_reply("from claude"), text_reply("from gpt")], lines=["hi", "/model gpt-5.5", "/model", "and you?", "/model nope", "/models"]
+    )
     run_repl(app, input_fn=feeder)
-    assert app.model.name == "other-model" and "other-model (anthropic)" in out.getvalue()
+    text = out.getvalue()
+    assert app.spec.provider == "openai" and app.model.name == "gpt-5.5"
+    assert "Model is now gpt-5.5 (openai)" in text and "gpt-5.5 · openai · default" in text
+    assert [m.text for m in model.calls[-1].messages] == ["hi", "from claude", "and you?"]
+    assert "Could not switch model: Unknown model 'nope'" in text
+    assert "opus" in text and "claude-opus-5" in text  # /models table
+    assert app.session.provider == "openai"
 
 
 def test_plan_mode_blocks_writes(workspace):
