@@ -21,6 +21,14 @@ uv run harness -c                               # continue the last conversation
 Done — `notes.txt` contains `hello`.
 ```
 
+## See it in action
+
+![harness-cli answering a question: it lists, searches and reads files while a Thinking spinner runs](docs/media/harness-cli-demo.gif)
+
+**[Watch the 42-second highlight reel](docs/media/harness-cli-highlights.mp4)**: launch, `/help`, `/status`,
+`/tools`, a question answered by searching and reading the workspace, a streamed answer, and an honest
+"I have no network access" reply from inside the sandbox.
+
 **What it does:** multi-turn chat with streaming output; file reading, searching and exact-match
 editing; a shell confined to the workspace (macOS Seatbelt: no network, no writes outside);
 approval prompts with four permission modes and allow/deny rules; slash commands and your own
