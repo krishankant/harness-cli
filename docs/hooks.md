@@ -1,6 +1,6 @@
 # Hooks: changing the loop without editing it
 
-Week 6 adds hooks. This page explains where they fire, what each one can return, how several hooks combine, and the four hooks harnessy already has. It ends with six hooks you can write yourself, each checked against `ScriptedModel`.
+Week 6 adds hooks. This page explains where they fire, what each one can return, how several hooks combine, and the four hooks harnessy already has. It then gives six hooks you can write yourself, each checked against `ScriptedModel`, and ends with a map from these hooks to the ones in Claude Code, Codex and the OpenAI Agents SDK.
 
 > **In one line:** a hook is code the agent loop calls at fixed points in a run, so you can **watch**, **change** or **block** what happens without touching `loop.py`.
 
@@ -390,8 +390,133 @@ flowchart TD
   style BOTH fill:#fff6e0,stroke:#d19a1c
 ```
 
+## 8. From harnessy to the harnesses you use
+
+Hooks are not a harnessy idea. Claude Code, OpenAI's Codex and the OpenAI Agents SDK all have them, at nearly the same points. Once you know the seven points on this page, you already know where to look in each of them. Two pages go into detail: [`claude-code-hooks.md`](claude-code-hooks.md) and [`openai-hooks.md`](openai-hooks.md).
+
+### Two shapes of hook
+
+```mermaid
+flowchart TD
+  Q{"Who owns the loop?"}
+  Q -->|"your Python code calls it"| LIB["<b>A library</b><br/>harnessy · OpenAI Agents SDK"]
+  Q -->|"a product you configure"| PROD["<b>A product</b><br/>Claude Code · Codex"]
+  LIB --> L1["a hook is a <b>class</b><br/>registered in code<br/>gets and returns Python objects"]:::lib
+  PROD --> P1["a hook is a <b>program</b><br/>registered in a settings file<br/>JSON on stdin, exit code + JSON on stdout"]:::prod
+  classDef lib fill:#e8f0fe,stroke:#4a6fd8
+  classDef prod fill:#eef8ee,stroke:#3a9a4a
+```
+
+The idea is the same in both shapes: fixed points, and at each one a hook can watch, change or block. The second shape exists because a product can't import your Python class. Your hook might be a shell script, so everything crosses a process boundary as text.
+
+### The seven points, in four harnesses
+
+```mermaid
+flowchart LR
+  subgraph HY["harnessy"]
+    direction TB
+    a1["on_start"]
+    a2["before_model"]
+    a3["after_model"]
+    a4["before_tool"]
+    a5["after_tool"]
+    a6["on_stop"]
+    a7["on_finish"]
+  end
+  subgraph CC["Claude Code and Codex"]
+    direction TB
+    b1["SessionStart"]
+    b2["UserPromptSubmit<br/><i>once per prompt</i>"]
+    b4["PreToolUse<br/>PermissionRequest"]
+    b5["PostToolUse"]
+    b6["Stop"]
+    b7["SessionEnd"]
+  end
+  subgraph SDK["OpenAI Agents SDK"]
+    direction TB
+    c1["on_agent_start"]
+    c2["on_llm_start<br/>input guardrail"]
+    c3["on_llm_end"]
+    c4["on_tool_start<br/>tool input guardrail"]
+    c5["on_tool_end<br/>tool output guardrail"]
+    c7["on_agent_end<br/>output guardrail"]
+  end
+  a1 --- b1
+  a2 -.- b2
+  a4 --- b4
+  a5 --- b5
+  a6 --- b6
+  a7 --- b7
+  b1 ~~~ c1
+  b2 ~~~ c2
+  b4 ~~~ c4
+  b5 ~~~ c5
+  b7 ~~~ c7
+  style HY fill:#f6f7fb,stroke:#9aa3c0
+  style CC fill:#eef8ee,stroke:#3a9a4a
+  style SDK fill:#e8f0fe,stroke:#4a6fd8
+```
+
+Read each row across. A solid line is a direct match and the dotted one is a partial match; a gap in a column means that harness has no hook at that point.
+
+| harnessy | Claude Code | Codex | OpenAI Agents SDK |
+| --- | --- | --- | --- |
+| `on_start` | `SessionStart` | `SessionStart` | `on_agent_start` |
+| `before_model` → new view | `UserPromptSubmit` adds context, **once per prompt** | the same | – (`on_llm_start` only watches) |
+| `before_model` → `Block` | `"continue": false` | `"continue": false` | input guardrail tripwire |
+| `after_model` | – | – | `on_llm_end` (watch) |
+| `before_tool` → `Block` | `PreToolUse`: `permissionDecision: "deny"` | the same | tool input guardrail: `reject_content` |
+| `before_tool` → new call | `PreToolUse`: `updatedInput` | `updatedInput`, with `allow` | – |
+| `after_tool` → new result | `PostToolUse`: `updatedToolOutput` | swap for feedback text only | tool output guardrail: swap for a message |
+| `on_stop` → "not yet" | `Stop`: `decision: "block"` + `reason` | the same | – |
+| `on_finish` | `SessionEnd` | `SessionEnd` | `on_agent_end` |
+| `ApprovalHook` | `permissions` rules + `PermissionRequest` | approval policy + `PermissionRequest` | `needs_approval=True` on a tool |
+| `StopCheck(max_rejections=2)` | `stop_hook_active`, and a cap of 8 | `stop_hook_active` | – |
+
+### Three things that change when you leave harnessy
+
+```mermaid
+flowchart LR
+  subgraph ONE["1. A chain becomes a vote"]
+    direction TB
+    o1["harnessy: hooks run in order,<br/>each gets the last one's result"] --> o2["Claude Code, Codex: hooks run<br/>in parallel; the strictest answer wins"]
+  end
+  subgraph TWO["2. before_model disappears"]
+    direction TB
+    t1["harnessy: a hook before<br/>every model call"] --> t2["Claude Code, Codex: one event<br/>per prompt you type"]
+  end
+  subgraph THREE["3. 'Change' and 'block' may split"]
+    direction TB
+    h1["harnessy: one Hook class<br/>watches, changes and blocks"] --> h2["Agents SDK: hooks watch,<br/>guardrails block"]
+  end
+  style ONE fill:#fff6e0,stroke:#d19a1c
+  style TWO fill:#fdf0ee,stroke:#c9563c
+  style THREE fill:#e8f0fe,stroke:#4a6fd8
+```
+
+1. **Order stops mattering.** Section 3's rule, "put hooks that change things before hooks that record them", has no equivalent in Claude Code or Codex. Hooks there can't see each other's changes, so keep all the rewriting for one tool in one hook.
+2. **No hook before every model call.** `TodoList`, `Reminder` and `TokenBudget` all rely on `before_model`. None of them ports directly: a reminder moves to `CLAUDE.md` or `AGENTS.md`, and a budget moves to the product's own limit.
+3. **Blocking may be a different mechanism.** In the Agents SDK every lifecycle hook returns `None`. To refuse a tool call there you write a guardrail on the tool.
+
+### How the six examples port
+
+| Example | Claude Code | Codex | Agents SDK |
+| --- | --- | --- | --- |
+| 1. `RedactSecrets` | Yes: `updatedToolOutput` | Partly: withhold the output, can't mask it | Partly: withhold, can't mask |
+| 2. `DraftsOnly` | Yes: `updatedInput` or `deny` | Deny: yes. Rewrite: the input is a patch, not a path | Refuse: yes. Rewrite: no |
+| 3. `TokenBudget` | No: use `--max-budget-usd` | No | Yes: count in `on_llm_end`, raise in `on_llm_start` |
+| 4. `ToolTimer` | Yes: `duration_ms` is given | Yes: time it yourself | Yes: `on_tool_start` + `on_tool_end` |
+| 5. `TestsMustPass` | Yes: `Stop` | Yes: the same script | No: nothing turns down "done" |
+| 6. `Reminder` | Once per prompt | Once per prompt | No: put it in `instructions` |
+
+The working code for each cell is in the two companion pages, where every script and sample was run.
+
+**Where to go next:** if you use Claude Code, read [`claude-code-hooks.md`](claude-code-hooks.md) and port one of your own hooks. If you use OpenAI, [`openai-hooks.md`](openai-hooks.md) covers Codex (Part A) and the Agents SDK (Part B), and ends with all four harnesses in one table.
+
 ## See also
 
+- [`docs/claude-code-hooks.md`](claude-code-hooks.md): these hooks in Claude Code, with the six examples ported
+- [`docs/openai-hooks.md`](openai-hooks.md): the same for Codex and the OpenAI Agents SDK
 - `lessons/week6-control-flow.md`, sections 3 to 8, and exercises 6a and 6b
 - `solutions/harnessy/hooks.py`, `approvals.py`, `todo.py`, and `TraceHook` in `tracer.py`
 - [`docs/todo.md`](todo.md), [`docs/subagents.md`](subagents.md) (pass your hooks down to helpers), [`docs/traces.md`](traces.md)

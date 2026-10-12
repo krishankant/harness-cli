@@ -96,6 +96,8 @@ Deeper reading, for when a lesson raises a question:
 | How an agent decides to launch a subagent | [`docs/subagents.md`](docs/subagents.md) |
 | How the model plans with the todo list, from two real runs | [`docs/todo.md`](docs/todo.md) |
 | How to change the loop without editing it, with six example hooks | [`docs/hooks.md`](docs/hooks.md) |
+| The same hooks in Claude Code: events, settings, how a hook answers, and the six examples ported | [`docs/claude-code-hooks.md`](docs/claude-code-hooks.md) (read after the one above) |
+| Hooks on the OpenAI side: Codex hooks and the Agents SDK's lifecycle hooks and guardrails, with a four-way comparison | [`docs/openai-hooks.md`](docs/openai-hooks.md) |
 | How an injected web page can steal your data, and how harnessy stops it | [`docs/trifecta.md`](docs/trifecta.md) |
 | What a skill is, and how harnessy would load one on demand | [`docs/skills.md`](docs/skills.md) |
 | What the sandbox stops, what it doesn't, and how to add real isolation | [`docs/sandbox.md`](docs/sandbox.md) (`uv run python -m scripts.sandbox_demo`) |

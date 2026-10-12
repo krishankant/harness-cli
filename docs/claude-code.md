@@ -116,7 +116,7 @@ Evals are where the two differ: Claude Code does not come with them. If you chan
 
 ### Week 6: hooks, approvals, subagents, planning
 
-**Hooks.** Claude Code's hooks are shell commands set in `settings.json`, but they fire at the same points as harnessy's and can do the same three things: watch, change or block.
+**Hooks.** Claude Code's hooks are shell commands set in `settings.json`, but they fire at the same points as harnessy's and can do the same three things: watch, change or block. [`claude-code-hooks.md`](claude-code-hooks.md) covers them in full.
 
 | harnessy hook point | Claude Code event | Blocking works the same way |
 | --- | --- | --- |
