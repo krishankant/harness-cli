@@ -98,6 +98,7 @@ Deeper reading, for when a lesson raises a question:
 | How to change the loop without editing it, with six example hooks | [`docs/hooks.md`](docs/hooks.md) |
 | The same hooks in Claude Code: events, settings, how a hook answers, and the six examples ported | [`docs/claude-code-hooks.md`](docs/claude-code-hooks.md) (read after the one above) |
 | Hooks on the OpenAI side: Codex hooks and the Agents SDK's lifecycle hooks and guardrails, with a four-way comparison | [`docs/openai-hooks.md`](docs/openai-hooks.md) |
+| The kinds of agent memory (short-term, episodic, semantic, procedural), how production systems build each, what goes wrong, and three memory extensions to harnessy | [`docs/memory.md`](docs/memory.md) (pairs with week 4) |
 | How an injected web page can steal your data, and how harnessy stops it | [`docs/trifecta.md`](docs/trifecta.md) |
 | What a skill is, and how harnessy would load one on demand | [`docs/skills.md`](docs/skills.md) |
 | What the sandbox stops, what it doesn't, and how to add real isolation | [`docs/sandbox.md`](docs/sandbox.md) (`uv run python -m scripts.sandbox_demo`) |

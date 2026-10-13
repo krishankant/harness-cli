@@ -142,6 +142,8 @@ That's the "file system as memory" idea from the Manus post. The agent decides w
 
 `recall` ranks by shared words, which is deliberately simple. The demo stored `favourite_colour: "The user's favourite colour is teal."` and the next run found it with "favourite colour". Swapping in embeddings is a good stretch once you have evals to tell whether it helped.
 
+`MemoryStore` is one kind of memory out of several. [docs/memory.md](../docs/memory.md) maps the rest (episodic, semantic, procedural), shows how production systems build them, and adds three small extensions to this store.
+
 ## 9. Exercises
 
 | # | Function | File | Tests |
